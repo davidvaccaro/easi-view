@@ -1,0 +1,241 @@
+{
+  "title": "easi-view: competitive feature catalog and phased roadmap",
+  "reviewDate": "2026-10-13",
+  "purpose": "Browser-native DICOM viewer using EASI JS ingestion with an independently implemented rendering engine, loading runtime, tools, and workspace.",
+  "scope": "A representative benchmark across 16 viewer/product families spanning browser, desktop, enterprise and advanced visualization. Documented capabilities inform the backlog; this is not an independently tested ranking or a promise of complete parity.",
+  "benchmarks": [
+    {
+      "name": "OHIF",
+      "deployment": "Browser platform",
+      "focus": "Configurable workflows, DICOMweb, measurements, segmentation, fusion, volume rendering and extensibility.",
+      "qualification": "Pin a stable version for acceptance; current documentation also describes a beta branch.",
+      "url": "https://docs.ohif.org/"
+    },
+    {
+      "name": "Weasis",
+      "deployment": "Installed cross-platform desktop application",
+      "focus": "Wide DICOM object coverage, presentation handling, quantitative tools, SEG/RT/ECG, MPR and 3D.",
+      "qualification": "Web launch still requires installation; features must be checked against the selected release.",
+      "url": "https://weasis.org/en/features/"
+    },
+    {
+      "name": "RadiAnt",
+      "deployment": "Installed Windows application",
+      "focus": "Fast everyday review, cine, comparative layouts, reconstruction and specialized analysis.",
+      "qualification": "Installed and removable-media editions differ; some tools require add-ons or supported GPU hardware.",
+      "url": "https://www.radiantviewer.com/products/"
+    },
+    {
+      "name": "OsiriX MD",
+      "deployment": "Installed macOS workstation",
+      "focus": "Advanced workstation tools, reconstruction, registration, quantitative and specialty workflows.",
+      "qualification": "Use MD as the benchmark; Lite and mobile products have different scope.",
+      "url": "https://www.osirix-viewer.com/resources/technical-sheet/"
+    },
+    {
+      "name": "Horos",
+      "deployment": "Installed macOS research viewer",
+      "focus": "Local organization, MPR, 3D, export and extensibility.",
+      "qualification": "Project-authored evidence for some tools is historical; do not infer current parity from ancestry.",
+      "url": "https://horosproject.org/faqs/"
+    },
+    {
+      "name": "3D Slicer",
+      "deployment": "Installed research platform",
+      "focus": "Segmentation editing, quantitative analysis, registration, sequences and extension-based tools.",
+      "qualification": "SlicerRT and other specialty packages are separate extensions; research features need their own intended-use validation.",
+      "url": "https://slicer.readthedocs.io/en/latest/user_guide/modules/index.html"
+    },
+    {
+      "name": "MedDream",
+      "deployment": "HTML5 browser viewer with archive integration",
+      "focus": "General browser review, reconstruction, measurements, derived objects and specialty tools.",
+      "qualification": "Capabilities depend on edition, archive configuration and separately licensed modules.",
+      "url": "https://meddream.com/products/meddream-dicom-viewer/"
+    },
+    {
+      "name": "Visage 7",
+      "deployment": "Native smart client with server processing/rendering",
+      "focus": "Enterprise reading performance, prior studies and specialist diagnostic workflows.",
+      "qualification": "Its desktop diagnostic architecture is not a browser-only zero-footprint viewer.",
+      "url": "https://visageimaging.com/platform/technical/"
+    },
+    {
+      "name": "Sectra UniView / IDS7",
+      "deployment": "UniView browser review plus IDS7 diagnostic application",
+      "focus": "Enterprise access, reporting, collaboration, worklists, breast imaging and pathology.",
+      "qualification": "Separate the browser review product from the richer diagnostic workstation and optional reporting/specialty contracts.",
+      "url": "https://medical.sectra.com/product/sectra-uniview/",
+      "secondaryUrl": "https://medical.sectra.com/product/sectra-ids7/"
+    },
+    {
+      "name": "MicroDicom",
+      "deployment": "Installed Windows and portable-media viewer",
+      "focus": "Compact desktop workflow, MPR/3D, fusion, tag editing, anonymization and DICOM/media export.",
+      "qualification": "Current manual scope is broader than basic 2D. Portable native media is not browser-only.",
+      "url": "https://www.microdicom.com/dicom-viewer-user-manual/"
+    },
+    {
+      "name": "DWV",
+      "deployment": "JavaScript/HTML5 browser library",
+      "focus": "Local/remote loading, browser rendering, annotations and embeddable APIs.",
+      "qualification": "Use its explicit stable conformance matrix; implementations and planned sections differ. GPL-3.0 is a separate dependency decision.",
+      "url": "https://github.com/ivmartel/dwv",
+      "secondaryUrl": "https://ivmartel.github.io/dwv/doc/stable/tutorial-conformance.html"
+    },
+    {
+      "name": "Intelerad InteleViewer / InteleConnect EV",
+      "deployment": "Native workstation plus distinct browser portal",
+      "focus": "Streaming diagnostic review, archive workflow and enterprise image access.",
+      "qualification": "InteleViewer is a native Windows/macOS client; InteleConnect EV is the separate zero-footprint clinical portal.",
+      "url": "https://www.intelerad.com/en/inteleviewer-solution/",
+      "secondaryUrl": "https://www.intelerad.com/wp-content/uploads/2022/05/InteleConnect-One-pager-North-America.pdf"
+    },
+    {
+      "name": "Siemens syngo.via",
+      "deployment": "Modular advanced workstation/platform",
+      "focus": "Quantitative specialty applications, background postprocessing, anatomical alignment and advanced visualization.",
+      "qualification": "Application availability varies by license and country; standalone View&GO requires installation.",
+      "url": "https://www.siemens-healthineers.com/en-us/digital-health-solutions/syngovia",
+      "secondaryUrl": "https://www.siemens-healthineers.com/en-us/digital-health-solutions/cinematic-rendering"
+    },
+    {
+      "name": "GE AW / Universal Viewer",
+      "deployment": "Advanced thin-client platform plus separate enterprise viewers",
+      "focus": "Server-assisted advanced visualization, neuro perfusion, specialized acquisition workflows and PACS integration.",
+      "qualification": "Universal Viewer Zero Footprint is distinct from the broader AW application portfolio.",
+      "url": "https://www.gehealthcare.com/en/products/advanced-visualization-platforms/aw-server",
+      "secondaryUrl": "https://www.gehealthcare.com/en-in/products/healthcare-it/enterprise-imaging/centricity-universal-viewer-zero-footprint"
+    },
+    {
+      "name": "Philips Advanced Visualization Workspace",
+      "deployment": "Advanced visualization platform with a modular application catalog",
+      "focus": "Quantitative MRI/CT, perfusion, spectroscopy, liver/lung/neuro analysis and anatomical modeling.",
+      "qualification": "The catalog includes a Zero Footprint Viewer as one app, plus licensed/third-party/country-dependent specialty applications.",
+      "url": "https://acc.usa.philips.com/healthcare/solutions/diagnostic-informatics/advanced-visualization/advanced-visualization-clinical-applications",
+      "secondaryUrl": "https://www.usa.philips.com/healthcare/support/dicom/standalone-workstations-dicom-conformance-statements"
+    },
+    {
+      "name": "TeraRecon AV / Intuition",
+      "deployment": "Cloud/server-assisted advanced visualization platform",
+      "focus": "Cardiac/vascular intervention planning, specialty quantification, 3D and separate AI orchestration.",
+      "qualification": "Preprocessing, optional applications, device libraries and backend products are separate capabilities.",
+      "url": "https://www.terarecon.com/terarecon-av",
+      "secondaryUrl": "https://www.terarecon.com/intuition"
+    }
+  ],
+  "architecture": [
+    {
+      "component": "EASI JS 1.0.0",
+      "responsibility": "Transport and streaming DICOM parsing through the published pipeline APIs. Maintain the independently licensed library boundary."
+    },
+    {
+      "component": "EASI View frame source and runtime",
+      "responsibility": "Normalized raw samples and geometry, lazy worker decoding, request cancellation, encoded input limits and byte-budgeted decoded caches."
+    },
+    {
+      "component": "Owned rendering engine",
+      "responsibility": "Direct WebGL2 scalar textures and shaders, DICOM display transforms, calibrated coordinates and a CPU reference/fallback. Later own MPR and GPU volume rendering."
+    },
+    {
+      "component": "Owned tools and browser workspace",
+      "responsibility": "Framework-free ES-module 2D alpha, viewport interactions, calibrated measurements, cine, import and source lifecycle; later multi-viewport and extension APIs."
+    },
+    {
+      "component": "Optional server integrations",
+      "responsibility": "DICOMweb archives, identity provider, annotation/report persistence and Node DIMSE gateway. Local files remain in the browser."
+    }
+  ],
+  "architectureSources": [
+    "https://developer.mozilla.org/en-US/docs/Web/API/WebGL2RenderingContext",
+    "https://developer.mozilla.org/en-US/docs/Web/API/OffscreenCanvas",
+    "https://dicom.nema.org/medical/dicom/current/output/chtml/part18/chapter_10.html"
+  ],
+  "principles": [
+    "Zero-footprint means no installed viewer or browser plugin. Browser processing and server-backed archive/integration modes can coexist.",
+    "Local-file mode parses and displays locally, with no file upload or persistent patient-data storage by default.",
+    "EASI remains the ingest and normalization boundary through a direct raw-frame source contract.",
+    "Keep raw scalar samples and physical geometry; display RGBA is a presentation product, not a quantitative volume source.",
+    "Measure streaming value using time to first useful image, responsiveness, retained bytes, cancellation and buffer disposal.",
+    "Streaming already exists in other viewers. Differentiate through the expressive pipeline API, a reusable owned engine, resource control and integration experience.",
+    "Publish a capability matrix by SOP class, transfer syntax, photometric profile, frame model, browser/device and supported operations.",
+    "Clinical intended use, specialty algorithms and diagnostic measurements need explicit validation criteria separate from a feature checkbox.",
+    "Own the viewer engine, cache, and tools. Add codec-only providers deliberately; do not add a substantial third-party viewer or rendering framework."
+  ],
+  "phases": [
+    {
+      "id": "P0",
+      "name": "Owned engine and correctness foundation",
+      "release": "Technical milestone",
+      "deliverables": "Independent repository, matching source-available license, raw-pixel/frame/geometry contract, owned WebGL2 renderer with CPU reference, worker lifecycle, synthetic fixtures and byte-budgeted caches.",
+      "gate": "Independent signedness, High Bit, endian, window, inversion, orientation, spacing and cancellation tests pass; repeated loads dispose CPU/GPU resources; no external viewer engine is present."
+    },
+    {
+      "id": "P1",
+      "name": "Professional 2D alpha",
+      "release": "0.1 alpha",
+      "deliverables": "Local files/folders, study and series organization, one configured DICOMweb archive, thumbnails, stack navigation, cine with declared timing, presets, pan/zoom/rotate/flip, layouts, metadata, keyboard/touch and calibrated basic measurements.",
+      "gate": "An independently encoded CT/MR/X-ray/US corpus works across the selected browser/device matrix. Local viewing is network-free and unsupported inputs fail clearly."
+    },
+    {
+      "id": "P2",
+      "name": "Reliable general viewer",
+      "release": "1.0 target after P1 + P2",
+      "deliverables": "Validated compressed and enhanced profiles, patient-geometry sorting, workers, bounded caches and prefetch, authenticated archive integration, priors, linked views, layout presets, richer ROI tools, persistence and operational hardening.",
+      "gate": "Published compatibility matrix, reproducible performance budgets, quantitative reference checks, repeated-study cleanup, multiple archive implementations and source-appropriate security/access tests all pass."
+    },
+    {
+      "id": "P3",
+      "name": "Volume and multimodality workbench",
+      "release": "Later core release",
+      "deliverables": "Verified volume assembly, axial/coronal/sagittal and oblique MPR, crosshairs, reference lines, slabs, MIP/MinIP/average projections, curved reconstructions, 3D rendering, geometry-aware fusion and selected registration.",
+      "gate": "Known phantoms verify geometry and reformat measurements. Nonuniform, mixed-orientation or nonmatching-frame-of-reference data receives defined handling."
+    },
+    {
+      "id": "P4",
+      "name": "Interoperable results and research",
+      "release": "Workflow modules",
+      "deliverables": "SEG viewing/editing, SR measurement tracking, GSPS/KOS, parametric maps, AI result overlays, quantification, longitudinal research and standards-based export/save.",
+      "gate": "Output objects retain correct image/frame references and units and round-trip through independently implemented viewers and validators. AI display, editing and execution have separate contracts."
+    },
+    {
+      "id": "P5",
+      "name": "Enterprise workflow",
+      "release": "Deployment/integration modules",
+      "deliverables": "Identity and roles, worklists, assignment, hanging-protocol authoring, reporting, EMR/FHIR context, sharing/collaboration, audit, policy controls, deployment operations and optional legacy PACS gateway.",
+      "gate": "Authorization, session cleanup, audit and concurrency are exercised end-to-end in a representative institution integration. Local-only mode remains an explicit supported workflow."
+    },
+    {
+      "id": "P6",
+      "name": "Specialty workstations",
+      "release": "Independent selected modules",
+      "deliverables": "Breast/DBT/ABUS, echo/cardiac/vascular, nuclear oncology, RT review, dental/orthopedics, WSI pathology, ophthalmology and advanced research analysis.",
+      "gate": "Choose each specialty explicitly with domain expertise, independently validated numerical and interaction tests and the necessary dependencies. Modules can proceed in parallel once their core prerequisites are proven."
+    }
+  ],
+  "kickoff": [
+    "Create an independent local easi-view repository with matching community licensing and a synthetic-only asset policy.",
+    "Keep a focused src/data, src/runtime, src/render, src/ui, test and docs structure; split packages only when a reusable boundary is proven.",
+    "Implement a direct raw-frame contract and owned WebGL2 renderer with independent scalar, windowing and geometry expectations.",
+    "Prove one viewport using local files and a bounded native DICOMweb multipart response with lazy worker decoding and explicit resource cleanup.",
+    "Expand compressed and enhanced support through independently validated providers and additive EASI APIs when needed.",
+    "Build archive browsing, multiple viewports and richer tools after the first numerical and lifecycle gates pass.",
+    "Use the evidence-linked catalog for further scope decisions; keep actual support recorded in STATUS.md."
+  ],
+  "knownEasiGaps": [
+    "Current convenience decoders primarily produce display RGBA. Quantitative pixels and volume loading need a raw scalar output contract.",
+    "Native multiframe detection and encapsulated fragment/frame extraction need broader correctness coverage, including empty/basic/extended offset tables.",
+    "Enhanced shared/per-frame metadata and exact modality/VOI/presentation behavior need normalized, independently validated support.",
+    "JPEG2000, JPEG-LS and HTJ2K runtimes require explicit provision, supported-profile validation and licensing notices.",
+    "Streaming the parser and selecting attributes do not automatically provide a bounded, frame-oriented viewer cache or progressive decoded frames.",
+    "SEG/SR/PresentationState accessors do not by themselves implement object visualization, editing or interoperable save workflows."
+  ],
+  "scopeNotes": [
+    "The catalog is a comprehensive candidate backlog for the named benchmarks, not an exhaustive inventory of every viewer, optional module or future release.",
+    "Vendor documentation is evidence of advertised capability, not proof of accuracy, interoperability, performance or installation-specific availability.",
+    "Specialty entries are a menu of potential modules, not a simultaneous first-release commitment.",
+    "Keep EASI JS and its license/versioning separate from viewer code; preserve third-party runtime licenses and notices.",
+    "An independent local research alpha starts P0/P1. The broader feature catalog remains a candidate backlog, and publication is a later release task."
+  ],
+  "implementationStatus": "0.1.0-alpha.0 starts the P0/P1 native-monochrome slice. The catalog is a backlog, not a list of implemented capabilities. See STATUS.md."
+}

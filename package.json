@@ -1,0 +1,21 @@
+{
+  "name": "@xinonix/easi-view",
+  "version": "0.1.0-alpha.0",
+  "private": true,
+  "type": "module",
+  "description": "An independent browser DICOM viewer built on EASI JS streaming pipelines.",
+  "author": "Xinonix Interactive Development, Inc.",
+  "repository": { "type": "git", "url": "git+https://github.com/davidvaccaro/easi-view.git" },
+  "license": "SEE LICENSE IN LICENSE",
+  "engines": { "node": "22.x || 24.x" },
+  "scripts": {
+    "dev": "node tools/dev-server.mjs",
+    "build": "node tools/build.mjs",
+    "preview": "node tools/dev-server.mjs --production",
+    "test": "node --test test/*.test.js",
+    "check": "npm test && npm run build && node tools/check-dist.mjs",
+    "artifact:pack": "node tools/pack-artifact.mjs"
+  },
+  "dependencies": { "@xinonix/easi-js": "1.0.0" },
+  "devDependencies": { "esbuild": "0.28.2" }
+}
