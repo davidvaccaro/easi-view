@@ -1,9 +1,10 @@
 # EASI View v1 release plan
 
-Status: **1.0.0-rc.1**, 2026-10-22. Public candidate target: npm **next**.
-The base is frozen and targeted qualification has passed; final registry, source
-release and hosting proof belongs to publication records. Complete the running
-full-corpus stable gate before advancing to 1.0.0 or resuming feature expansion.
+Status: **1.0.0-rc.1 published**, 2026-10-22. Source, npm SDK, six GitHub release
+assets and the AI-free public demo are available. Targeted qualification and
+public-registry installation checks passed. Complete the running full-corpus
+stable gate before advancing to 1.0.0 or resuming feature expansion. Both npm
+`next` and `latest` currently resolve to the candidate; this is not stable 1.0.0.
 
 ## Preserved work and release line
 
@@ -45,11 +46,11 @@ competitive inventory remains a backlog rather than release scope.
 | Independent EASI JS hardening | Complete: 1.0.1 published, tested archive verified against registry, 1,466 tests passed | Exact registry version/integrity, independent clean install and viewer lock |
 | Viewer numeric/runtime/build checks | Passed: 2,163 tests, zero skipped, production build and distribution guards | `npm run check` and clean source fingerprint; no inherited AI-test count |
 | Browser qualification | Passed: 99 native-browser checks on the fixed source | Opening/cancel/error/Select all, display, tools/measurements, comparison, embedding, no AI requests and disposal |
-| Full local corpus regression | Running across all 23,893 files; outcome pending and required before stable 1.0.0 | Per-file comparison over all 23,893 inputs, actual supported frame draws and applicable interactions; classified unsupported/invalid inputs remain explicit |
-| Clean consumer installation | Passed: 9 actual Chrome checks, six Node export checks, TypeScript 5.3.3, 46 copied files and exact pixel/calibration/disposal checks | Install packed SDK plus registry-resolved core in a fresh consumer, resolve types, copy assets, mount/render/dispose and verify adjacent worker/WASM |
-| Artifact/publication hygiene | Pending final artifacts | Clean tagged checkout, synthetic-only public assets, secrets/original-data exclusion, complete licenses and checksums |
-| Documentation/support matrix | Updated for the qualified AI-free candidate; publication records remain separate | README, exact profile/limits, embedding/assets, unsupported outcomes, licensing and reproducible release instructions |
-| RC publication/demo | Target npm next; verify final registry, GitHub release and hosted proof separately | Candidate under npm `next`, versioned static/SDK archives, matching GitHub tag/release and verified demo |
+| Full local corpus regression | Running from an isolated tagged copy across all 23,893 files; outcome pending and required before stable 1.0.0 | Per-file comparison over all 23,893 inputs, actual supported frame draws and applicable interactions; classified unsupported/invalid inputs remain explicit |
+| Clean consumer installation | Passed: 9 actual Chrome checks on the exact SDK plus fresh public-registry integrity/exports/types/46-file asset-copy checks | Install packed SDK plus registry-resolved core in a fresh consumer, resolve types, copy assets, mount/render/dispose and verify adjacent worker/WASM |
+| Artifact/publication hygiene | Passed: exact public SDK archive matched the tested SHA-256; six release assets available | Clean tagged checkout, synthetic-only public assets, secrets/original-data exclusion, complete licenses and checksums |
+| Documentation/support matrix | Updated for the qualified candidate and verified publication; immutable tagged docs retained | README, exact profile/limits, embedding/assets, unsupported outcomes, licensing and reproducible release instructions |
+| RC publication/demo | Complete: public source, npm RC, GitHub release and byte-matched demo; 10/10 public/local Chrome smoke checks | Both npm `next`/`latest` point to RC1; explicit candidate install recommended; exact tag/archive/deployment proof in STATUS.md |
 | Stable 1.0.0 | Not yet approved by these candidate results | Resolve release-blocking defects, finish review/qualification, bump/tag/build a distinct stable version and publish `latest` deliberately |
 
 The qualified source fingerprint is
@@ -69,6 +70,23 @@ run must report every file, actual render outcomes, supported modality actions,
 known unsupported/invalid classifications and unexpected failures. Fix defects
 with generated public regressions, then retest affected originals privately and
 freeze/requalify the final build. Never commit source images or clinical data.
+
+## Published candidate and remaining tag limitation
+
+- [npm package](https://www.npmjs.com/package/@xinonix/easi-view): use
+  `npm install @xinonix/easi-view@next` or `@1.0.0-rc.1` explicitly.
+- [Versioned release and six assets](https://github.com/davidvaccaro/easi-view/releases/tag/v1.0.0-rc.1):
+  tag commit `5dd411056f426ebd33929091ed17eac2214d0968`; published SDK SHA-256
+  `ce2d5193b17065bcacfe19357cdbade0acc14b0b73397464c05f0e701d2da318`.
+- [AI-free public demo](https://d3gv6o0ove04h3.cloudfront.net/): all 46 files
+  match the qualified build; restored local previews match it too.
+
+npm also assigned the initial prerelease to `latest`. The authenticated removal
+attempt returned HTTP 400; both tags remain on RC1. This is a recorded registry
+limitation, not a stable-release promotion. Do not claim `next` exclusivity or
+stable qualification from that label. [STATUS.md](STATUS.md) retains exact
+publication and recovery evidence. Future stable publication requires the
+completed corpus report and a distinct stable version/tag/artifact.
 
 ## Release discipline
 

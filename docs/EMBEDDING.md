@@ -7,9 +7,11 @@ inside a Shadow DOM boundary; its styles and keyboard shortcuts stay inside the
 component, rather than changing your application's page styles or shortcuts.
 
 This is the typed browser ES-module integration for the AI-free **1.0.0-rc.1**
-release candidate. Public candidate publication uses npm’s **next** tag; stable
-1.0.0 remains a separate release after the final corpus review. See the current
-publication status in [README.md](../README.md), the exact supported image profiles
+release candidate, now published on npm. Install with **@next** or the explicit
+**@1.0.0-rc.1** version. Both npm `next` and `latest` currently point to the
+candidate; neither label establishes stable qualification. Stable 1.0.0 remains
+a separate release after the running full corpus campaign and review. See
+[README.md](../README.md), the exact supported image profiles
 in [STATUS.md](STATUS.md), and the outstanding gates in [RELEASE_PLAN.md](RELEASE_PLAN.md).
 
 ## Try the integration example
@@ -25,15 +27,15 @@ available to host applications supplying their own worklists.
 
 ## Mount in your application
 
-For a candidate published under `next`, install and copy its adjacent runtime assets:
+Install the published candidate and copy its adjacent runtime assets:
 
 ```sh
 npm install @xinonix/easi-view@next
 npx easi-view-copy-assets public/easi-view
 ```
 
-During publication preparation, use the packed
-`xinonix-easi-view-1.0.0-rc.1.tgz` in place of the registry package. Either path
+Alternatively, install the supplied `xinonix-easi-view-1.0.0-rc.1.tgz` archive
+in place of the registry package. Either path
 resolves the independent EASI JS 1.0.1 dependency from npm. From a source checkout,
 run `npm run build` and serve the distribution's assets from your own application.
 Keep the SDK, `decode-worker.js`, linked legal-comment files and license notices

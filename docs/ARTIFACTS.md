@@ -4,9 +4,10 @@ EASI View owns its Git repository, package lock, tests, CI, version, license and
 releases. EASI JS remains an independent exact-version package dependency. No
 sibling checkout, submodule or viewer-owned fork is required.
 
-The viewer is preparing **1.0.0-rc.1** with **@xinonix/easi-js@1.0.1**. Viewer
-registry publication is pending. The independent core 1.0.1 is published and
-its registry archive was verified against the tested artifact. The former
+The public **1.0.0-rc.1** viewer uses independent **@xinonix/easi-js@1.0.1**.
+The [GitHub release](https://github.com/davidvaccaro/easi-view/releases/tag/v1.0.0-rc.1)
+provides six archive/manifest/checksum assets. Both projects’ registry archives
+were verified against their tested artifacts. The former
 `1.0.1-corpus.0` vendored candidate belongs to historical qualification, not the
 release dependency contract.
 
@@ -74,18 +75,21 @@ See [EMBEDDING.md](EMBEDDING.md).
 
 ## Installable SDK and framework assets
 
-With EASI JS 1.0.1 independently available from the registry, the locally packed
-candidate can be installed in an independent consumer without sibling source
+Install the public candidate in an independent consumer without sibling source
 directories:
 
 ```sh
-npm install ./xinonix-easi-view-1.0.0-rc.1.tgz
+npm install @xinonix/easi-view@next
 npx easi-view-copy-assets public/easi-view
 ```
 
-A later published candidate can instead use `npm install @xinonix/easi-view@next`.
-That command is a post-publication path, not a claim that a viewer package is
-already on npm. Local packing and installation publish neither project.
+For exact pinning use `npm install @xinonix/easi-view@1.0.0-rc.1`; a supplied
+local archive can use `npm install ./xinonix-easi-view-1.0.0-rc.1.tgz`. Fresh
+public-registry installation verified the package integrity, exports, types and
+46 copied runtime files. Both npm `next` and `latest` currently resolve to RC1;
+this is still a prerelease. See [STATUS.md](STATUS.md) for the measured tag
+limitation, release commit and exact archive SHA-256. Local packing/installation
+publishes neither project.
 
 Import the served module from `/easi-view/assets/easi-view.js`; use
 `import type { Viewer } from '@xinonix/easi-view'` for TypeScript. In a Vite/React
@@ -110,8 +114,10 @@ GitHub Actions runs checks on Node.js 22 and 24 for `main`, release branches and
 pull requests. Node.js 24 also creates static and SDK archives retained as workflow
 artifacts. CI does not automatically publish npm, deploy hosting or create a
 public GitHub release. The candidate manifest explicitly permits public
-prerelease publication and defaults to the `next` tag. This is a release configuration, not an automatic
-publishing job. Stable publication is separate and remains gated by the final
+prerelease publication and defaults to the `next` tag. This is a release
+configuration, not an automatic publishing job. The initial publication also
+received npm’s `latest` tag; its attempted removal returned HTTP 400, as recorded
+in STATUS.md. Stable 1.0.0 is separate and remains gated by the running final
 full-corpus qualification.
 
 The local browser harness uses an isolated Chrome profile. Set `EASI_VIEW_BROWSER`

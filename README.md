@@ -4,9 +4,13 @@ An independent, zero-footprint DICOM viewer built on **EASI JS**. The browser
 application owns its renderer, loading runtime, cache, interactions and tools.
 It provides a brandable 2D workspace, patient-space reconstruction and explicitly scoped research/integration profiles.
 
-**Version:** 1.0.0-rc.1. **Publication target:** npm `next`.
+**Version:** 1.0.0-rc.1 — published release candidate.
 **License:** source available under the
 [EASI View Community License](LICENSE), with a commercial alternative.
+
+[Try the viewer](https://d3gv6o0ove04h3.cloudfront.net/) ·
+[Release downloads](https://github.com/davidvaccaro/easi-view/releases/tag/v1.0.0-rc.1) ·
+[npm package](https://www.npmjs.com/package/@xinonix/easi-view)
 
 ## Run locally
 
@@ -78,11 +82,11 @@ start empty unless an initial demo is requested. Scoped styles, focused keyboard
 shortcuts, host events, dynamic branding/colors and explicit cleanup form the
 first integration foundation. See [EMBEDDING.md](docs/EMBEDDING.md) for the complete
 API, configuration, CSP and lifecycle contract. This release candidate provides
-static and installable npm archives; its public package target is
+static and installable npm archives and is available as
 [`@xinonix/easi-view@next`](https://www.npmjs.com/package/@xinonix/easi-view).
 
-EASI JS 1.0.1 is independently available from npm. The public candidate
-installation path is below; copy the full asset directory into your application's
+EASI JS 1.0.1 and this viewer candidate are independently available from npm.
+Install the candidate explicitly; copy the full asset directory into your application's
 public files so worker and codec URLs remain adjacent:
 
 ```sh
@@ -91,9 +95,13 @@ npx easi-view-copy-assets public/easi-view
 ```
 
 For a locally supplied candidate, replace the install command with
-`npm install ./xinonix-easi-view-1.0.0-rc.1.tgz`. Final registry/publication proof
-and archive checksums belong to the matching
-[GitHub release](https://github.com/davidvaccaro/easi-view/releases/tag/v1.0.0-rc.1).
+`npm install ./xinonix-easi-view-1.0.0-rc.1.tgz`. To pin the registry version
+exactly, use `npm install @xinonix/easi-view@1.0.0-rc.1`. Published archives and
+checksums are in the [GitHub release](https://github.com/davidvaccaro/easi-view/releases/tag/v1.0.0-rc.1).
+
+At publication verification, npm tags **next and latest both resolve to
+1.0.0-rc.1**. This is still a prerelease; the registry’s `latest` label does not
+mean stable 1.0.0. Use the explicit candidate commands above.
 
 ```js
 // Import from the copied public URL; worker and WASM URLs stay adjacent.
@@ -432,7 +440,9 @@ This is an AI-free research viewer release candidate. Its format, geometry,
 rendering, reconstruction and integration support is defined by exact profiles in
 [STATUS.md](docs/STATUS.md). The [v1 release plan](docs/RELEASE_PLAN.md) freezes the
 base scope and remaining acceptance gates; [RELEASING.md](docs/RELEASING.md) describes
-artifact and publication steps. The candidate targets npm `next`; stable 1.0.0 and the `latest` tag remain separate.
+artifact and publication steps. The candidate is public on npm and GitHub;
+stable 1.0.0 remains gated separately. The measured npm tag state is disclosed
+above rather than implying that only `next` resolves to the candidate.
 The new-build full-corpus rerun is **running across 23,893 files**, checking all
 logical frames in successful supported sessions. Its reviewed outcome blocks
 stable 1.0.0 and is not yet claimed as a completed pass.
@@ -444,7 +454,11 @@ checks and **99 native-browser checks**. A separate independent clean SDK
 consumer passed **9 actual-browser checks**, six Node export checks, strict
 TypeScript 5.3.3 compilation and direct/CLI copying of all 46 runtime files.
 These are software/integration checks; exact scopes and historical evidence are
-recorded in [browser qualification](docs/BROWSER_VALIDATION.md).
+recorded in [browser qualification](docs/BROWSER_VALIDATION.md). A fresh public-registry
+consumer additionally verified package integrity, exports, strict types and the
+46 copied runtime files. Actual Chrome smoke checks passed **10/10** across the
+public demo and restored local server. The release tag and archive identity are
+recorded in [STATUS.md](docs/STATUS.md).
 
 The [roadmap](docs/ROADMAP.md) records phased exit gates. The
 [interactive competitive catalog](docs/easi-view-plan.html) contains 272 candidate

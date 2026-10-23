@@ -1,6 +1,6 @@
 # Supported profile and validation status
 
-Version **1.0.0-rc.1** prepares an AI-free initial release using the independent
+Version **1.0.0-rc.1** is the public AI-free release candidate using the independent
 **EASI JS 1.0.1** core. AI controls, configuration, public SDK endpoints, provider
 adapters and voice workflows are removed from the release line. The accomplished
 experimental work and its exact preservation commit remain in [AI_BACKLOG.md](AI_BACKLOG.md).
@@ -32,12 +32,46 @@ as `framechange`, so its first displayed image replaces the preparing status.
 The final counts above are on the fixed fingerprint, not copied from its earlier
 2,156-test predecessor. See [BROWSER_VALIDATION.md](BROWSER_VALIDATION.md).
 
-The new-build **23,893-file full-corpus campaign is running** with all-frame
-coverage for successful supported sessions. Its outcome is pending and remains
-a **stable 1.0.0 gate**. The public candidate targets npm `next`; final registry,
-GitHub release and hosting proof are separate publication records. Historical
-results below retain their original fingerprints rather than becoming new-build
-passes. See [RELEASE_PLAN.md](RELEASE_PLAN.md).
+## Publication and deployed identity
+
+The [public source repository](https://github.com/davidvaccaro/easi-view) and
+[GitHub release](https://github.com/davidvaccaro/easi-view/releases/tag/v1.0.0-rc.1)
+are live. Tag `v1.0.0-rc.1` identifies commit
+[`5dd411056f426ebd33929091ed17eac2214d0968`](https://github.com/davidvaccaro/easi-view/commit/5dd411056f426ebd33929091ed17eac2214d0968).
+The publication-proof main revision was
+[`6185296bb6d749f46f127093546cd9c94eb14927`](https://github.com/davidvaccaro/easi-view/commit/6185296bb6d749f46f127093546cd9c94eb14927).
+The release provides six versioned SDK/static archive, manifest and checksum assets.
+The npm SDK archive SHA-256 is
+`ce2d5193b17065bcacfe19357cdbade0acc14b0b73397464c05f0e701d2da318`,
+matching the exact tested public archive. A fresh public-registry consumer verified
+that integrity, six Node exports, strict TypeScript declarations, the `npx`
+46-file asset copy and registry-resolved EASI JS 1.0.1.
+
+[The public demo](https://d3gv6o0ove04h3.cloudfront.net/) and local previews on
+ports 5174/5188 serve all **46 files** byte-for-byte from qualified fingerprint
+`c335d229…`. Post-deployment actual Chrome smoke checks passed **10/10** across
+public and local viewing. An older development watcher briefly rebuilt local
+assets during the Git update; only the owned watcher was stopped, the tagged
+assets were restored and the local checks then passed. The experimental cloud
+backend remains separate and unchanged; no model/authentication calls were
+needed to deploy the AI-free static viewer.
+
+**Measured npm tag state:** both `next` and `latest` point to **1.0.0-rc.1**.
+npm assigned `latest` at first publication as well as the requested `next` tag.
+An authenticated attempt to remove `latest` returned **HTTP 400**, so no tag
+cleanup is claimed. Install `@xinonix/easi-view@next` or the explicit version;
+this tag state does not make the prerelease a stable release.
+
+The **23,893-file full-corpus campaign is running** from an isolated tagged
+copy with all-frame coverage for successful supported sessions. After the local
+watcher issue, 400 validated files were retained and the incomplete 200-file
+batch was restarted. This is progress, not a completed campaign outcome. The
+reviewed final outcome remains a **stable 1.0.0 gate**. Historical results below
+retain their original fingerprints rather than becoming new-build passes.
+See [RELEASE_PLAN.md](RELEASE_PLAN.md).
+
+These post-publication notes update main documentation only. The versioned tag,
+release archives and their original qualification documents remain unchanged.
 
 ## Implemented
 

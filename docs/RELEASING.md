@@ -1,6 +1,8 @@
 # Releasing EASI View
 
-The initial candidate is **1.0.0-rc.1**. Preparation and packing do not publish it.
+The initial candidate **1.0.0-rc.1 is published**. Its verified public release is
+recorded in [STATUS.md](STATUS.md). The procedure below remains the release
+workflow; preparation and local packing alone do not publish a new version.
 Keep source, dependency versions, qualification receipts and released artifacts
 bound to one clean tagged checkout. EASI JS remains a separately licensed and
 released dependency; this process must not silently fork or patch installed core
@@ -95,12 +97,33 @@ Verify the actual npm version, integrity and `next` tag from an independent
 consumer. Update README/status/release notes with real URLs and completed results.
 No CI job in this preparation automatically publishes npm or deploys hosting.
 
+### Initial RC publication record and npm tag behavior
+
+The [public RC release](https://github.com/davidvaccaro/easi-view/releases/tag/v1.0.0-rc.1)
+contains six immutable archive/manifest/checksum assets at tag commit
+`5dd411056f426ebd33929091ed17eac2214d0968`. Its exact npm SDK archive SHA-256 is
+`ce2d5193b17065bcacfe19357cdbade0acc14b0b73397464c05f0e701d2da318`.
+The public registry archive matches the tested package; fresh installation
+verified exports, strict types, the 46-file asset copy and EASI JS 1.0.1.
+The [deployed viewer](https://d3gv6o0ove04h3.cloudfront.net/) matches its qualified
+fingerprint, with 10/10 actual public/local Chrome smoke checks.
+
+The first publication assigned **both `next` and `latest` to 1.0.0-rc.1**.
+An owner-authenticated attempt to remove `latest` returned **HTTP 400**; the tag
+was not removed. Record measured registry tags after publication rather than
+assuming `--tag next` prevents every initial-package `latest` assignment. Current
+installation guidance uses `@next` or the explicit `@1.0.0-rc.1` version. A tag
+label does not change the package's prerelease version or satisfy stable gates.
+This record is documentation only; it does not authorize further account-auth or
+tag changes, retagging, or republishing the immutable RC archives.
+
 ## 5. Promote a distinct stable release
 
 Complete the new-build full 23,893-file campaign, review its classified outcomes,
 review candidate feedback and resolve release-blocking defects. Set version
 `1.0.0`, create its own final clean commit/tag, build/qualify/package it, then
-publish that stable package to `latest` as a separate release action. Do not put
-the prerelease version `1.0.0-rc.1` on `latest` and describe it as stable 1.0.0.
+publish that stable package to `latest` as a separate release action. Until then,
+the registry’s current `latest`→`1.0.0-rc.1` state must remain documented as a
+prerelease, not described as stable 1.0.0.
 Retain candidate evidence and rollback artifacts; communicate supported profiles
 and remaining limitations rather than promising broad viewer/clinical parity.
