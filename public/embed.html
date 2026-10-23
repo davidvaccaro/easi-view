@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="A brandable EASI View component embedded in a sample imaging application.">
+    <title>EASI View — Embedded application example</title>
+    <link rel="stylesheet" href="./embed-demo.css">
+  </head>
+  <body>
+    <header class="product-header"><a class="product-brand" href="./embed.html"><span class="product-mark">N</span><span id="product-name">NOVA<span> Imaging</span></span></a><nav aria-label="Example application"><span class="active">Workspace</span><span>Studies</span><span>Reports</span></nav><a class="standalone-link" href="./">Open standalone viewer ↗</a></header>
+    <main class="product-main">
+      <div class="page-heading"><div><span class="kicker">INTEGRATION SANDBOX</span><h1>Your product. Our viewing engine.</h1><p>A working EASI View component, inside a sample imaging application.</p></div><span class="integration-badge"><i></i>Embedded · Browser only</span></div>
+      <div class="product-workspace">
+        <aside class="host-sidebar"><span class="kicker">APPLICATION WORKLIST</span><h2>Reference studies</h2><p>Synthetic images generated on this device.</p><div class="host-worklist"><button data-study="ct" class="selected"><span>CT</span><div><strong>Axial reference</strong><small>Calibrated stack · 16 images</small></div></button><button data-study="mr"><span>MR</span><div><strong>Soft-tissue phantom</strong><small>Native 16-bit stack</small></div></button><button data-study="xr"><span>DX</span><div><strong>Projection reference</strong><small>Single-frame radiograph</small></div></button><button data-study="us"><span>US</span><div><strong>Motion reference</strong><small>Multi-frame ultrasound cine</small></div></button></div><div class="host-side-note"><strong>The application owns the workflow.</strong><p>Study selection, branding and surrounding screens belong to your product. EASI View handles the image workspace.</p></div></aside>
+        <section class="host-viewer-card" aria-label="Embedded image viewer"><div class="host-toolbar"><div><span class="live-dot"></span><strong id="host-source">Axial reference</strong><span class="host-profile">Synthetic study</span></div><button id="host-open">Open local DICOM</button></div><div id="viewer-container"></div><div class="host-event-bar"><span id="integration-status" role="status">Preparing embedded viewer…</span><span>Host receives viewer events</span></div></section>
+      </div>
+      <section class="integration-controls" aria-label="Branding example"><div><span class="kicker">TRY A DIFFERENT SKIN</span><h2>Same component. Different product.</h2><p>Branding changes in place, without reloading the image.</p></div><div class="skin-buttons"><button data-skin="nova" class="selected" aria-pressed="true"><i class="skin-nova"></i>Nova Imaging</button><button data-skin="orbit" aria-pressed="false"><i class="skin-orbit"></i>Orbit Research</button><button data-skin="easi" aria-pressed="false"><i class="skin-easi"></i>EASI View</button></div></section>
+      <section class="integration-details"><div><span class="kicker">A SMALL INTEGRATION SURFACE</span><h2>Mount. Open. Dispose.</h2><p>Use the standalone application, or mount the viewer into a sized element in your own app. Styles and keyboard shortcuts stay inside the component.</p><a href="./" class="detail-link">Explore the standalone alpha ↗</a></div><pre><code>import { createViewer } from './assets/easi-view.js';
+
+const viewer = createViewer(container, {
+  branding: { name: 'Nova Imaging' },
+  theme: { accent: '#7aa9ff' },
+  ui: { library: false, demos: false }
+});
+
+await viewer.openFiles(fileInput.files);
+viewer.on('framechange', updateApplication);
+// On component unmount:
+viewer.dispose();</code></pre></section>
+      <footer class="product-footer"><span>Powered by EASI JS · Independently implemented EASI View engine</span><span>Research alpha · Synthetic examples · Local files stay local</span></footer>
+    </main>
+    <input id="host-files" type="file" multiple hidden>
+    <script type="module" src="./embed-demo.js"></script>
+  </body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "name": "easi-view-ai-demo-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": "22.x || 24.x" },
+  "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "3.1154.0",
+    "@aws-sdk/client-dynamodb": "3.1154.0",
+    "@aws-sdk/client-secrets-manager": "3.1154.0"
+  }
+}

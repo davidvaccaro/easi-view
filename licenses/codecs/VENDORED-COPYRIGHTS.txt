@@ -1,0 +1,149 @@
+Additional source copyright notices retained from the pinned dcmjs-codecs vendored libraries.
+
+better-enum-0.11.3
+
+
+brotli-1.2.0
+/* Copyright 2010 Google Inc. All Rights Reserved.
+/* Copyright 2013 Google Inc. All Rights Reserved.
+/* Copyright 2014 Google Inc. All Rights Reserved.
+/* Copyright 2015 Google Inc. All Rights Reserved.
+/* Copyright 2016 Google Inc. All Rights Reserved.
+/* Copyright 2017 Google Inc. All Rights Reserved.
+/* Copyright 2018 Google Inc. All Rights Reserved.
+/* Copyright 2022 Google Inc. All Rights Reserved.
+/* Copyright 2025 Google Inc. All Rights Reserved.
+
+charls-2.3.4
+// Copyright (c) Team CharLS.
+/// The presence of this entry, indicates that the image’s owner has retained copyright protection and usage rights for
+/// This entry describes in textual form copyright information for the image.
+CHARLS_SPIFF_ENTRY_TAG_COPYRIGHT_INFORMATION = 12,
+copyright_information = impl::CHARLS_SPIFF_ENTRY_TAG_COPYRIGHT_INFORMATION,
+
+highway-1.2.0
+// Copyright 2017 Google Inc. All Rights Reserved.
+// Copyright 2019 Google LLC
+// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
+// Copyright 2022 Google LLC
+// Copyright 2023 Google LLC
+// Copyright 2023,2024 Arm Limited and/or
+// Copyright 2024 Arm Limited and/or its affiliates <open-source-office@arm.com>
+// Copyright 2024 Google LLC
+
+libijg12-6b
+#define JCOPYRIGHT	"Copyright (C) 1998, Thomas G. Lane"
+*  All rights reserved.  See COPYRIGHT file for details.
+*  Copyright (C) 1998-2010, OFFIS e.V.
+* Copyright (C) 1991-1994, Thomas G. Lane.
+* Copyright (C) 1991-1996, Thomas G. Lane.
+* Copyright (C) 1991-1997, Thomas G. Lane.
+* Copyright (C) 1991-1998, Thomas G. Lane.
+* Copyright (C) 1992-1996, Thomas G. Lane.
+* Copyright (C) 1992-1997, Thomas G. Lane.
+* Copyright (C) 1994-1996, Thomas G. Lane.
+* Copyright (C) 1994-1997, Thomas G. Lane.
+* Copyright (C) 1994-1998, Thomas G. Lane.
+* Copyright (C) 1995-1998, Thomas G. Lane.
+* Copyright (C) 1998, Thomas G. Lane.
+JMESSAGE(JMSG_COPYRIGHT, JCOPYRIGHT)
+
+libijg16-6b
+#define JCOPYRIGHT	"Copyright (C) 1998, Thomas G. Lane"
+*  All rights reserved.  See COPYRIGHT file for details.
+*  Copyright (C) 1998-2010, OFFIS e.V.
+* Copyright (C) 1991-1994, Thomas G. Lane.
+* Copyright (C) 1991-1996, Thomas G. Lane.
+* Copyright (C) 1991-1997, Thomas G. Lane.
+* Copyright (C) 1991-1998, Thomas G. Lane.
+* Copyright (C) 1992-1996, Thomas G. Lane.
+* Copyright (C) 1992-1997, Thomas G. Lane.
+* Copyright (C) 1994-1996, Thomas G. Lane.
+* Copyright (C) 1994-1997, Thomas G. Lane.
+* Copyright (C) 1994-1998, Thomas G. Lane.
+* Copyright (C) 1995-1998, Thomas G. Lane.
+* Copyright (C) 1998, Thomas G. Lane.
+JMESSAGE(JMSG_COPYRIGHT, JCOPYRIGHT)
+
+libijg8-6b
+#define JCOPYRIGHT	"Copyright (C) 1998, Thomas G. Lane"
+*  All rights reserved.  See COPYRIGHT file for details.
+*  Copyright (C) 1998-2010, OFFIS e.V.
+* Copyright (C) 1991-1994, Thomas G. Lane.
+* Copyright (C) 1991-1996, Thomas G. Lane.
+* Copyright (C) 1991-1997, Thomas G. Lane.
+* Copyright (C) 1991-1998, Thomas G. Lane.
+* Copyright (C) 1992-1996, Thomas G. Lane.
+* Copyright (C) 1992-1997, Thomas G. Lane.
+* Copyright (C) 1994-1996, Thomas G. Lane.
+* Copyright (C) 1994-1997, Thomas G. Lane.
+* Copyright (C) 1994-1998, Thomas G. Lane.
+* Copyright (C) 1995-1998, Thomas G. Lane.
+* Copyright (C) 1998, Thomas G. Lane.
+JMESSAGE(JMSG_COPYRIGHT, JCOPYRIGHT)
+
+libjxl-0.11.2
+/* Copyright (c) the JPEG XL Project Authors. All rights reserved.
+// Copyright (c) the JPEG XL Project Authors. All rights reserved.
+CreateICCMlucTag(copyright, &tags);
+const std::string copyright = "CC0";
+
+openjpeg-2.5.0
+* 1. Redistributions of source code must retain the above copyright
+* 2. Redistributions in binary form must reproduce the above copyright
+* ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+* Copyright (c) 2001-2003, David Janssens
+* Copyright (c) 2002-2003, Yannick Verschueren
+* Copyright (c) 2002-2014, Professor Benoit Macq
+* Copyright (c) 2002-2014, Universite catholique de Louvain (UCL), Belgium
+* Copyright (c) 2003-2004, Yannick Verschueren
+* Copyright (c) 2003-2007, Francois-Olivier Devaux
+* Copyright (c) 2003-2014, Antonin Descampe
+* Copyright (c) 2005, Herve Drolon, FreeImage Team
+* Copyright (c) 2006-2007, Parvatha Elangovan
+* Copyright (c) 2007, Callum Lerwick <seg@haxxed.com>
+* Copyright (c) 2007, Jonathan Ballard <dzonatas@dzonux.net>
+* Copyright (c) 2008, 2011-2012, Centre National d'Etudes Spatiales (CNES), FR
+* Copyright (c) 2008, Jerome Fimes, Communications & Systemes <jerome.fimes@c-s.fr>
+* Copyright (c) 2010-2011, Kaori Hagihara
+* Copyright (c) 2011-2012, Centre National d'Etudes Spatiales (CNES), France
+* Copyright (c) 2012, CS Systemes d'Information, France
+* Copyright (c) 2012, Carl Hetherington
+* Copyright (c) 2012, Mathieu Malaterre <mathieu.malaterre@gmail.com>
+* Copyright (c) 2015, Mathieu Malaterre <mathieu.malaterre@gmail.com>
+* Copyright (c) 2015, Matthieu Darbois
+* Copyright (c) 2016, Even Rouault
+* Copyright (c) 2017, IntoPIX SA <support@intopix.com>
+* Copyright (c) 2017, IntoPix SA <contact@intopix.com>
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS `AS IS'
+* The copyright in this software is being made available under the 2-clauses
+// 1. Redistributions of source code must retain the above copyright
+// 2. Redistributions in binary form must reproduce the above copyright
+// Copyright (c) 2021, Aous Naman
+// Copyright (c) 2021, Kakadu Software Pty Ltd, Australia
+// Copyright (c) 2021, The University of New South Wales, Australia
+// PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+
+openjph-0.18.2
+// 1. Redistributions of source code must retain the above copyright
+// 2. Redistributions in binary form must reproduce the above copyright
+// Copyright (c) 2019, Aous Naman
+// Copyright (c) 2019, Kakadu Software Pty Ltd, Australia
+// Copyright (c) 2019, The University of New South Wales, Australia
+// Copyright (c) 2022, Aous Naman
+// Copyright (c) 2022, Kakadu Software Pty Ltd, Australia
+// Copyright (c) 2022, The University of New South Wales, Australia
+// PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+
+skcms-2025_09_16
+* Copyright 2018 Google Inc.
+* Copyright 2018 Google LLC
+* Copyright 2023 Google Inc.
+//    * Redistributions of source code must retain the above copyright
+// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+// Copyright (c) 2018 Google Inc. All rights reserved.
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// copyright notice, this list of conditions and the following disclaimer

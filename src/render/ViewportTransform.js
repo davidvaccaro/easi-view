@@ -1,8 +1,9 @@
-import { validPixelSpacing } from './DisplayMath.js';
+import { validPixelSpacing, validPixelAspectRatio } from './DisplayMath.js';
 
 /** Shared affine transform keeps renderer, probes, and measurement overlays aligned. */
 export function createImageTransform(frame, state, width, height) {
-    const [rowSpacing, columnSpacing] = validPixelSpacing(frame.pixelSpacing) ? frame.pixelSpacing : [1, 1];
+    const [rowSpacing, columnSpacing] = validPixelSpacing(frame.pixelSpacing) ? frame.pixelSpacing
+        : validPixelAspectRatio(frame.pixelAspectRatio) ? frame.pixelAspectRatio : [1, 1];
     const angle = state.rotation * Math.PI / 180;
     const cosine = Math.cos(angle);
     const sine = Math.sin(angle);

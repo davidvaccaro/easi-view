@@ -1,9 +1,37 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { Tag } from '@xinonix/easi-js';
 import { loadFiles, loadDemo, loadUrl, makeDemoFiles, MAX_SOURCE_BYTES } from '../src/data/sources.js';
 import { createDicomFixture } from '../src/data/synthetic.js';
 
 function file(options = {}) { return new File([createDicomFixture(options)], 'synthetic.dcm', { type: 'application/dicom' }); }
+
+for (const photometric of ['MONOCHROME1', 'MONOCHROME2']) {
+    test(`retired US Image Storage retains native samples and uncalibrated geometry (${photometric})`, async () => {
+        const sopClass = '1.2.840.10008.5.1.4.1.1.6';
+        let parsedSopClass;
+        const series = await loadFiles([file({ modality: 'US', sopClass, photometric,
+            bitsAllocated: 8, bitsStored: 8, values: [0, 64, 128, 255],
+            extraAttributes: { '00280030': null, '00200032': null, '00200037': null }
+        })], { onInstance: instance => { parsedSopClass = instance.dataSet.value(Tag.SOPClassUID); } });
+        try {
+            const frame = await series[0].getFrame(0);
+            assert.equal(parsedSopClass, sopClass);
+            assert.deepEqual([...frame.samples], [0, 64, 128, 255]);
+            assert.equal(frame.photometric, photometric);
+            assert.equal(frame.modality, 'US');
+            assert.equal(frame.pixelSpacing, null);
+            assert.equal(frame.position, null);
+            assert.equal(frame.orientation, null);
+        } finally { series.forEach(source => source.dispose()); }
+    });
+}
+
+test('retired US allowance preserves pixel validation and does not admit document objects', async () => {
+    await assert.rejects(loadFiles([file({ modality: 'US', sopClass: '1.2.840.10008.5.1.4.1.1.6',
+        extraAttributes: { '00280103': null } })]), /pixel metadata/);
+    await assert.rejects(loadFiles([file({ modality: 'SR', sopClass: '1.2.840.10008.5.1.4.1.1.88.11' })]), /object type/);
+});
 
 for (const transferSyntax of ['1.2.840.10008.1.2', '1.2.840.10008.1.2.1', '1.2.840.10008.1.2.2']) {
     test(`EASI native parsing preserves signed high-bit pixels and metadata (${transferSyntax})`, async () => {
@@ -114,7 +142,7 @@ test('MONOCHROME1, padding, non-HU rescale and explicit VOI metadata survive nor
     try {
         const frame = await series[0].getFrame(0);
         assert.equal(frame.photometric, 'MONOCHROME1');
-        assert.equal(frame.unit, '');
+        assert.equal(frame.unit, 'Z_EFF');
         assert.deepEqual(frame.padding, { value: -2048, limit: -2047 });
         assert.deepEqual(frame.range, { min: -1000, max: -800 });
         assert.equal(frame.voiFunction, 'LINEAR_EXACT');
@@ -129,19 +157,17 @@ test('odd native byte counts allow one DICOM padding byte and no arbitrary extra
 });
 
 const rejectedProfiles = [
-    ['compressed pixels', { transferSyntax: '1.2.840.10008.1.2.4.90' }, /uncompressed/],
-    ['color', { photometric: 'RGB' }, /MONOCHROME/],
+    ['compressed pixels', { transferSyntax: '1.2.840.10008.1.2.4.90' }, /Pixel Data encoding/],
+    ['RGB with an invalid sample count', { photometric: 'RGB' }, /RGB with three samples/],
     ['enhanced geometry', { extraAttributes: { '52009230': ['SQ', new Uint8Array()] } }, /functional groups/],
     ['VOI LUT', { extraAttributes: { '00283010': ['SQ', new Uint8Array()] } }, /LUT/],
     ['modality LUT', { extraAttributes: { '00283000': ['SQ', new Uint8Array()] } }, /LUT/],
     ['presentation LUT shape', { extraAttributes: { '20500020': ['CS', 'INVERSE'] } }, /Presentation/],
     ['contradictory presentation polarity', { photometric: 'MONOCHROME1', extraAttributes: { '20500020': ['CS', 'IDENTITY'] } }, /Presentation/],
-    ['SIGMOID VOI', { voiFunction: 'SIGMOID' }, /LINEAR/],
+    ['unsupported VOI', { voiFunction: 'UNSUPPORTED' }, /VOI/],
     ['missing PixelRepresentation', { extraAttributes: { '00280103': null } }, /pixel metadata/],
     ['orphan padding range', { paddingLimit: 1 }, /requires/],
-    ['non-square aspect without spacing', { extraAttributes: { '00280030': null, '00280034': ['IS', '2\\1'] } }, /display-aspect/],
-    ['invalid geometry', { orientation: [1, 0, 0, 1, 0, 0] }, /orientation/],
-    ['variable frame times', { extraAttributes: { '00181065': ['DS', '0\\40\\60'] } }, /frame-time/]
+    ['variable frame times', { extraAttributes: { '00181065': ['DS', '0\\40\\60'] } }, /Frame Time Vector|frame-time/]
 ];
 for (const [name, options, expected] of rejectedProfiles) {
     test(`unsupported or invalid profile fails explicitly: ${name}`, async () => {

@@ -1,3 +1,5 @@
+import { isDicomDirectory, setLocalRelativePath } from '../catalog/local-paths.js';
+
 const NON_IMAGE_FILES = new Set(['.ds_store', 'thumbs.db', 'desktop.ini', 'dicomdir']);
 
 export function isImageCandidate(file) {
@@ -9,7 +11,8 @@ function canceled() {
 }
 
 /** Read user-dropped entries only. Directory readers must be exhausted in batches. */
-export async function collectDroppedFiles(dataTransfer, { isCurrent = () => true, maximumBytes = Infinity } = {}) {
+export async function collectDroppedFiles(dataTransfer, { isCurrent = () => true, maximumBytes = Infinity, maximumFiles = 30000, includeDicomdir = false } = {}) {
+  if (!Number.isSafeInteger(maximumFiles) || maximumFiles < 1 || maximumFiles > 30000) throw new TypeError('Use a file selection limit from 1 to 30,000.');
   // Capture handles synchronously: the drag data store stops being readable after drop.
   const items = Array.from(dataTransfer?.items || []).filter((item) => item.kind !== 'string');
   const entries = items.map((item) => item.getAsEntry?.() || item.webkitGetAsEntry?.() || null);
@@ -19,15 +22,18 @@ export async function collectDroppedFiles(dataTransfer, { isCurrent = () => true
   const assertCurrent = () => { if (!isCurrent()) throw canceled(); };
   const append = (file) => {
     assertCurrent();
-    if (!isImageCandidate(file)) return;
+    if (!isImageCandidate(file) && !(includeDicomdir && isDicomDirectory(file))) return;
+    if (files.length >= maximumFiles) throw new Error(`The local catalog accepts at most ${maximumFiles.toLocaleString()} files per selection.`);
     total += file.size;
     if (total > maximumBytes) throw new Error('The selected files exceed the 256 MiB source limit. Open a smaller DICOM folder.');
     files.push(file);
   };
-  const walk = async (entry) => {
+  const walk = async (entry, parent = '') => {
     assertCurrent();
+    const path = parent ? `${parent}/${entry.name || ''}` : entry.name || '';
     if (entry.isFile) {
       const file = await new Promise((resolve, reject) => entry.file(resolve, reject));
+      if (entry.name) setLocalRelativePath(file, path);
       append(file);
     } else if (entry.isDirectory) {
       const reader = entry.createReader();
@@ -35,7 +41,7 @@ export async function collectDroppedFiles(dataTransfer, { isCurrent = () => true
         assertCurrent();
         const batch = await new Promise((resolve, reject) => reader.readEntries(resolve, reject));
         if (!batch.length) break;
-        for (const child of batch) await walk(child);
+        for (const child of batch) await walk(child, path);
       }
     }
   };

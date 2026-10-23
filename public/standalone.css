@@ -1,0 +1,4 @@
+/* Full-page sizing belongs to the standalone app, not the embeddable viewer. */
+html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+body { background: #080d13; }
+body > .viewer-container { height: 100dvh; }

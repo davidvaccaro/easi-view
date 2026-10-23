@@ -1,0 +1,11 @@
+{
+  "package": "dcmjs-codecs",
+  "version": "0.0.8",
+  "gitHead": "01efb9f55bdefd75c1b108cd378b1eb9d8d2ebd3",
+  "npmWasmSha256": "dff1bc9b3872588c231ea90894f05e7eacd7f5074b9db964e64e7f3f29821d30",
+  "npmWasmBytes": 4117001,
+  "taggedUpstreamBinaryMatches": true,
+  "sourceUrl": "https://github.com/PantelisGeorgiadis/dcmjs-codecs/tree/v0.0.8",
+  "buildScriptUrl": "https://github.com/PantelisGeorgiadis/dcmjs-codecs/blob/v0.0.8/wasm/build.sh",
+  "toolchainVersion": "Unspecified by pinned upstream build workflow; supplemental upstream toolchain notices included."
+}

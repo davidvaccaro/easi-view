@@ -1,4 +1,4 @@
-import { decodeNative } from '../data/native.js';
+import { decodeFrame } from '../data/compressed.js';
 
 export function abortError() {
     return new DOMException('The operation was canceled.', 'AbortError');
@@ -53,7 +53,20 @@ export class NativeDecoder {
                     worker.onmessage = ({ data }) => {
                         if (worker !== this.worker) return;
                         if (data.id !== this.active?.id) return;
-                        this.finish(data.error ? null : { samples: data.samples, range: data.range }, data.error ? new Error(data.error) : null);
+                        if (data.error) { this.worker?.terminate(); this.worker = null; }
+                        const precisionOverride = data.bitsStored !== undefined || data.highBit !== undefined;
+                        const metadata = this.active.metadata;
+                        if (!data.error && precisionOverride && !(data.bitsStored === 16 && data.highBit === 15 &&
+                            metadata.bitsAllocated === 16 && metadata.bitsStored === 12 && metadata.highBit === 11 && metadata.signed === false && metadata.samplesPerPixel === 1 &&
+                            !metadata.modalityLut && !metadata.voiLut && !metadata.hasVoiLut &&
+                            ['MONOCHROME1', 'MONOCHROME2'].includes(metadata.encodedPhotometric ?? metadata.photometric) &&
+                            ['1.2.840.10008.1.2.4.57', '1.2.840.10008.1.2.4.70'].includes(metadata.transferSyntax))) {
+                            this.worker?.terminate(); this.worker = null;
+                            this.finish(null, new Error('The pixel decoding worker returned inconsistent precision metadata.')); return;
+                        }
+                        this.finish(data.error ? null : { samples: data.samples, range: data.range,
+                            ...(precisionOverride ? { bitsStored: data.bitsStored, highBit: data.highBit } : {}),
+                            ...(Array.isArray(data.encodingWarnings) ? { encodingWarnings: [...data.encodingWarnings] } : {}) }, data.error ? new Error(data.error) : null);
                     };
                     worker.onerror = () => {
                         if (worker !== this.worker) return;
@@ -64,19 +77,23 @@ export class NativeDecoder {
                 }
                 // Transfer a single frame copy, never detach the retained encoded instance.
                 const copy = job.bytes.slice();
-                const { rows, columns, bitsAllocated, bitsStored, highBit, signed, littleEndian, slope, intercept, padding } = job.metadata;
+                const { rows, columns, bitsAllocated, bitsStored, highBit, signed, littleEndian, slope, intercept, padding,
+                    photometric, samplesPerPixel, planarConfiguration, transferSyntax, encodedPhotometric, modalityLut, pixelDecodingProfile, encodingWarnings } = job.metadata;
                 this.worker.postMessage({ id: job.id, bytes: copy.buffer,
-                    metadata: { rows, columns, bitsAllocated, bitsStored, highBit, signed, littleEndian, slope, intercept, padding }
+                    metadata: { rows, columns, bitsAllocated, bitsStored, highBit, signed, littleEndian, slope, intercept, padding,
+                        photometric, samplesPerPixel, planarConfiguration, transferSyntax, encodedPhotometric, modalityLut, pixelDecodingProfile,
+                        hasVoiLut: Boolean(job.metadata.voiLut || job.metadata.hasVoiLut),
+                        ...(Array.isArray(encodingWarnings) ? { encodingWarnings: [...new Set(encodingWarnings)] } : {}) }
                 }, [copy.buffer]);
             } catch (error) {
                 this.finish(null, error);
             }
         } else {
             // Deterministic CPU implementation for Node tests and a worker-less browser.
-            queueMicrotask(() => {
+            queueMicrotask(async () => {
                 if (this.active !== job) return;
-                try { checkAbort(job.signal); this.finish(decodeNative(job.bytes, job.metadata)); }
-                catch (error) { this.finish(null, error); }
+                try { checkAbort(job.signal); const result = await decodeFrame(job.bytes, job.metadata); if (this.active === job) { checkAbort(job.signal); this.finish(result); } }
+                catch (error) { if (this.active === job) this.finish(null, error); }
             });
         }
     }

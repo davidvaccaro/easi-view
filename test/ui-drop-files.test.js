@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { collectDroppedFiles, isImageCandidate } from '../src/ui/drop-files.js';
+import { getLocalRelativePath } from '../src/catalog/local-paths.js';
 
 function file(name, size = 10) { return { name, size }; }
 function fileEntry(name, size = 10) {
@@ -52,11 +53,35 @@ test('ordinary file drops fall back to FileList when entry APIs are unavailable'
     assert.deepEqual(files, [selected]);
 });
 
+test('media folder drops retain DICOMDIR and nested relative paths only when requested', async () => {
+    const image = Object.assign(fileEntry('IM000001'), { name: 'IM000001' });
+    const nested = Object.assign(directoryEntry([[image], []]), { name: 'IMAGES' });
+    const directory = Object.assign(fileEntry('DICOMDIR'), { name: 'DICOMDIR' });
+    const folder = Object.assign(directoryEntry([[directory, nested], []]), { name: 'DISC' });
+    const transfer = { items: [{ getAsEntry: () => folder }] };
+    const files = await collectDroppedFiles(transfer, { includeDicomdir: true });
+    assert.deepEqual(files.map(file => file.name), ['DICOMDIR', 'IM000001']);
+    assert.deepEqual(files.map(getLocalRelativePath), ['DISC/DICOMDIR', 'DISC/IMAGES/IM000001']);
+    assert.equal(files[1].webkitRelativePath, undefined);
+    await assert.rejects(collectDroppedFiles(transfer, { includeDicomdir: true, maximumFiles: 1 }), /at most 1 files/);
+});
+
 test('folder import checks the aggregate source byte budget before parsing pixels', async () => {
     const folder = directoryEntry([[fileEntry('one.dcm', 12), fileEntry('two.dcm', 12)], []]);
     await assert.rejects(collectDroppedFiles({ items: [{ getAsEntry: () => folder }] }, { maximumBytes: 20 }), /source limit/);
     const files = await collectDroppedFiles({ files: [file('boundary.dcm', 20)] }, { maximumBytes: 20 });
     assert.equal(files.length, 1);
+});
+
+test('local catalog traversal bounds candidate files across directory batches and fallback selections', async () => {
+    const folder = directoryEntry([[fileEntry('.DS_Store'), fileEntry('one')], [fileEntry('two.ima'), fileEntry('three')], []]);
+    await assert.rejects(collectDroppedFiles({ items: [{ getAsEntry: () => folder }] }, { maximumFiles: 2 }), /at most 2 files/);
+    const selected = [file('one'), file('two.ima')];
+    assert.deepEqual(await collectDroppedFiles({ files: selected }, { maximumFiles: 2 }), selected);
+    await assert.rejects(collectDroppedFiles({ files: [...selected, file('three')] }, { maximumFiles: 2 }), /at most 2 files/);
+    for (const maximumFiles of [0, -1, 1.5, Infinity, 30001]) {
+        await assert.rejects(collectDroppedFiles({ files: [] }, { maximumFiles }), /selection limit/);
+    }
 });
 
 test('superseding or disposing a drop cancels traversal and returns no late files', async () => {

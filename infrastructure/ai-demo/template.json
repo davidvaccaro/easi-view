@@ -1,0 +1,845 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Isolated EASI View AI Assist Preview: private viewer, invitation sessions, fact-only streaming AI, configurable OpenAI or fixed Bedrock provider, server-only credentials and durable usage caps. No existing domain or marketing changes.",
+  "Metadata": {
+    "AWSToolsMetrics": {
+      "AWSAgentToolkit": "aws-cloudformation@3"
+    }
+  },
+  "Parameters": {
+    "CodeBucket": {
+      "Type": "String",
+      "AllowedPattern": "[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]",
+      "Description": "Private regional S3 bucket containing the reproducible gateway ZIP."
+    },
+    "CodeKey": {
+      "Type": "String",
+      "AllowedPattern": "[A-Za-z0-9/_.-]+",
+      "Description": "Immutable SHA256-derived gateway object key."
+    },
+    "DailyInvocationLimit": {
+      "Type": "Number",
+      "Default": 200,
+      "MinValue": 1,
+      "MaxValue": 1000,
+      "Description": "Hard daily request admission cap, including connectivity tests."
+    },
+    "AiProvider": {
+      "Type": "String",
+      "AllowedValues": [
+        "bedrock",
+        "openai"
+      ],
+      "Default": "bedrock",
+      "Description": "Configured upstream provider; keep Bedrock until an OpenAI secret is available and recipient labels are updated."
+    },
+    "AiModelId": {
+      "Type": "String",
+      "Default": "gpt-6.1-sol",
+      "AllowedPattern": "[A-Za-z0-9][A-Za-z0-9._:/@+-]{0,119}",
+      "Description": "Server-owned OpenAI model identifier. Bedrock remains pinned to its qualified in-region Nova Micro model."
+    },
+    "OpenAiApiKeySecretArn": {
+      "Type": "String",
+      "Default": "",
+      "AllowedPattern": "^$|^arn:aws[a-z-]*:secretsmanager:[a-z0-9-]+:[0-9]{12}:secret:[A-Za-z0-9/_+=.@-]+$",
+      "Description": "Exact Secrets Manager ARN containing the OpenAI API key. ARN only; never place a credential value here."
+    }
+  },
+  "Resources": {
+    "DemoAccessCode": {
+      "Type": "AWS::SecretsManager::Secret",
+      "Metadata": {
+        "com.aws.cloudformation.Context": {
+          "why": "A human enters a private invitation code to obtain a short-lived session.",
+          "must": "Keep the value out of outputs, URLs, static files and logs."
+        }
+      },
+      "Properties": {
+        "Description": "Invitation code for isolated EASI View AI demonstration. Never embed in viewer assets.",
+        "GenerateSecretString": {
+          "PasswordLength": 48,
+          "ExcludePunctuation": true,
+          "IncludeSpace": false
+        }
+      }
+    },
+    "OriginSecret": {
+      "Type": "AWS::SecretsManager::Secret",
+      "Metadata": {
+        "com.aws.cloudformation.Context": {
+          "why": "Reject direct function-URL requests before invoking any model or quota storage.",
+          "must": "The edge injects this value; browser assets and responses never receive it."
+        }
+      },
+      "Properties": {
+        "Description": "CloudFront-to-gateway origin authentication; not a viewer credential.",
+        "GenerateSecretString": {
+          "PasswordLength": 48,
+          "ExcludePunctuation": true,
+          "IncludeSpace": false
+        }
+      }
+    },
+    "QuotaTable": {
+      "Type": "AWS::DynamoDB::Table",
+      "Metadata": {
+        "com.aws.cloudformation.Context": {
+          "why": "Atomic counters bound total model calls across warm execution environments.",
+          "must": "Store only hashed counter categories, counts and expirations; retain no request data."
+        }
+      },
+      "Properties": {
+        "BillingMode": "PAY_PER_REQUEST",
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "bucket",
+            "AttributeType": "S"
+          }
+        ],
+        "KeySchema": [
+          {
+            "AttributeName": "bucket",
+            "KeyType": "HASH"
+          }
+        ],
+        "SSESpecification": {
+          "SSEEnabled": false
+        },
+        "TimeToLiveSpecification": {
+          "AttributeName": "expires",
+          "Enabled": true
+        }
+      },
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain"
+    },
+    "LogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Metadata": {
+        "com.aws.cloudformation.Context": {
+          "why": "Bounded operational logs contain runtime status only.",
+          "must": "No request, response, access-code, cookie or patient logging."
+        }
+      },
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Sub": "/aws/lambda/${AWS::StackName}-ai"
+        },
+        "RetentionInDays": 7
+      },
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain"
+    },
+    "GatewayRole": {
+      "Type": "AWS::IAM::Role",
+      "Metadata": {
+        "com.aws.cloudformation.Context": {
+          "why": "Grant only this demo quota/log access plus the selected provider capability.",
+          "must": "OpenAI may read only its exact configured secret ARN; Bedrock may invoke only the pinned regional model. No provider key values in environment, templates or logs."
+        }
+      },
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "own-quotas-and-runtime-logs",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:UpdateItem"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "QuotaTable",
+                      "Arn"
+                    ]
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": {
+                    "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-ai:*"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "Fn::If": [
+              "UseBedrock",
+              {
+                "PolicyName": "fixed-bedrock-model",
+                "PolicyDocument": {
+                  "Version": "2012-10-17",
+                  "Statement": [
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "bedrock:InvokeModelWithResponseStream"
+                      ],
+                      "Resource": {
+                        "Fn::Sub": "arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/amazon.nova-micro-v1:0"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          },
+          {
+            "Fn::If": [
+              "UseOpenAi",
+              {
+                "PolicyName": "read-configured-openai-secret",
+                "PolicyDocument": {
+                  "Version": "2012-10-17",
+                  "Statement": [
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "secretsmanager:GetSecretValue"
+                      ],
+                      "Resource": {
+                        "Ref": "OpenAiApiKeySecretArn"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "Gateway": {
+      "Type": "AWS::Lambda::Function",
+      "Metadata": {
+        "com.aws.cloudformation.Context": {
+          "why": "Stream short fact-only AI drafts with a configured provider and no browser credentials.",
+          "must": "Authenticate origin and provider-scoped session before admission; retrieve OpenAI secrets only inside authorized generation with bounded timeout/cache; never log bodies or credentials."
+        }
+      },
+      "Properties": {
+        "FunctionName": {
+          "Fn::Sub": "${AWS::StackName}-ai"
+        },
+        "Runtime": "nodejs22.x",
+        "Architectures": [
+          "arm64"
+        ],
+        "Handler": "index.handler",
+        "Code": {
+          "S3Bucket": {
+            "Ref": "CodeBucket"
+          },
+          "S3Key": {
+            "Ref": "CodeKey"
+          }
+        },
+        "MemorySize": 256,
+        "Timeout": 65,
+        "ReservedConcurrentExecutions": 2,
+        "Role": {
+          "Fn::GetAtt": [
+            "GatewayRole",
+            "Arn"
+          ]
+        },
+        "Environment": {
+          "Variables": {
+            "AI_MODEL_ID": {
+              "Fn::If": [
+                "UseBedrock",
+                "amazon.nova-micro-v1:0",
+                {
+                  "Ref": "AiModelId"
+                }
+              ]
+            },
+            "AI_QUOTA_TABLE": {
+              "Ref": "QuotaTable"
+            },
+            "AI_DEMO_PASSCODE": {
+              "Fn::Sub": "{{resolve:secretsmanager:${DemoAccessCode}:SecretString}}"
+            },
+            "AI_ORIGIN_SECRET": {
+              "Fn::Sub": "{{resolve:secretsmanager:${OriginSecret}:SecretString}}"
+            },
+            "AI_DAILY_LIMIT": {
+              "Ref": "DailyInvocationLimit"
+            },
+            "AI_PROVIDER": {
+              "Ref": "AiProvider"
+            },
+            "OPENAI_API_KEY_SECRET_ARN": {
+              "Fn::If": [
+                "UseOpenAi",
+                {
+                  "Ref": "OpenAiApiKeySecretArn"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "DependsOn": [
+        "LogGroup"
+      ]
+    },
+    "GatewayUrl": {
+      "Type": "AWS::Lambda::Url",
+      "Metadata": {
+        "com.aws.cloudformation.Context": {
+          "why": "CloudFront forwards same-origin requests to the streaming gateway.",
+          "must": "Application rejects unknown edge secret and requires signed short-lived user session."
+        }
+      },
+      "Properties": {
+        "AuthType": "NONE",
+        "InvokeMode": "RESPONSE_STREAM",
+        "TargetFunctionArn": {
+          "Ref": "Gateway"
+        }
+      }
+    },
+    "UrlInvokePermission": {
+      "Type": "AWS::Lambda::Permission",
+      "Metadata": {
+        "com.aws.cloudformation.Context": {
+          "why": "A function URL with application authentication needs URL invoke permission.",
+          "must": "Does not authorize AI use; server origin and cookie gates run before every model call."
+        }
+      },
+      "Properties": {
+        "Action": "lambda:InvokeFunctionUrl",
+        "FunctionName": {
+          "Ref": "Gateway"
+        },
+        "Principal": "*",
+        "FunctionUrlAuthType": "NONE"
+      }
+    },
+    "FunctionInvokePermission": {
+      "Type": "AWS::Lambda::Permission",
+      "Metadata": {
+        "com.aws.cloudformation.Context": {
+          "why": "New function URLs require separate underlying invoke permission.",
+          "must": "Only invocations through the function URL are allowed by this statement."
+        }
+      },
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Ref": "Gateway"
+        },
+        "Principal": "*",
+        "InvokedViaFunctionUrl": true
+      }
+    },
+    "ViewerBucket": {
+      "Type": "AWS::S3::Bucket",
+      "Metadata": {
+        "com.aws.cloudformation.Context": {
+          "why": "Host the independently built synthetic demo viewer without public S3 access.",
+          "must": "Only CloudFront may read viewer objects; originals and credentials never enter this bucket."
+        }
+      },
+      "Properties": {
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
+        },
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256"
+              }
+            }
+          ]
+        },
+        "VersioningConfiguration": {
+          "Status": "Enabled"
+        }
+      },
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain"
+    },
+    "ViewerOac": {
+      "Type": "AWS::CloudFront::OriginAccessControl",
+      "Metadata": {
+        "com.aws.cloudformation.Context": {
+          "why": "Let CloudFront read the private demo bucket.",
+          "must": "Keep S3 public access blocked."
+        }
+      },
+      "Properties": {
+        "OriginAccessControlConfig": {
+          "Name": {
+            "Fn::Sub": "${AWS::StackName}-viewer"
+          },
+          "OriginAccessControlOriginType": "s3",
+          "SigningBehavior": "always",
+          "SigningProtocol": "sigv4"
+        }
+      }
+    },
+    "StaticCache": {
+      "Type": "AWS::CloudFront::CachePolicy",
+      "Metadata": {
+        "com.aws.cloudformation.Context": {
+          "why": "Cache only public static viewer artifacts.",
+          "must": "No patient data, session cookies or AI results in cache."
+        }
+      },
+      "Properties": {
+        "CachePolicyConfig": {
+          "Name": {
+            "Fn::Sub": "${AWS::StackName}-static"
+          },
+          "DefaultTTL": 300,
+          "MaxTTL": 86400,
+          "MinTTL": 0,
+          "ParametersInCacheKeyAndForwardedToOrigin": {
+            "EnableAcceptEncodingGzip": true,
+            "EnableAcceptEncodingBrotli": true,
+            "CookiesConfig": {
+              "CookieBehavior": "none"
+            },
+            "HeadersConfig": {
+              "HeaderBehavior": "none"
+            },
+            "QueryStringsConfig": {
+              "QueryStringBehavior": "none"
+            }
+          }
+        }
+      }
+    },
+    "NoCache": {
+      "Type": "AWS::CloudFront::CachePolicy",
+      "Metadata": {
+        "com.aws.cloudformation.Context": {
+          "why": "Never cache login, session, or AI output responses.",
+          "must": "All AI paths use zero minimum, default and maximum TTL."
+        }
+      },
+      "Properties": {
+        "CachePolicyConfig": {
+          "Name": {
+            "Fn::Sub": "${AWS::StackName}-no-cache"
+          },
+          "DefaultTTL": 0,
+          "MaxTTL": 0,
+          "MinTTL": 0,
+          "ParametersInCacheKeyAndForwardedToOrigin": {
+            "EnableAcceptEncodingGzip": false,
+            "CookiesConfig": {
+              "CookieBehavior": "none"
+            },
+            "HeadersConfig": {
+              "HeaderBehavior": "none"
+            },
+            "QueryStringsConfig": {
+              "QueryStringBehavior": "none"
+            }
+          }
+        }
+      }
+    },
+    "ApiOriginRequest": {
+      "Type": "AWS::CloudFront::OriginRequestPolicy",
+      "Metadata": {
+        "com.aws.cloudformation.Context": {
+          "why": "Forward only session and protocol headers needed by the same-origin gateway.",
+          "must": "Never forward viewer Host as Lambda origin Host; do not pass arbitrary authorization headers."
+        }
+      },
+      "Properties": {
+        "OriginRequestPolicyConfig": {
+          "Name": {
+            "Fn::Sub": "${AWS::StackName}-ai-requests"
+          },
+          "CookiesConfig": {
+            "CookieBehavior": "all"
+          },
+          "HeadersConfig": {
+            "HeaderBehavior": "whitelist",
+            "Headers": [
+              "Origin",
+              "Content-Type",
+              "x-easi-public-origin",
+              "x-easi-viewer-ip",
+              "X-Easi-Ai-Model"
+            ]
+          },
+          "QueryStringsConfig": {
+            "QueryStringBehavior": "none"
+          }
+        }
+      }
+    },
+    "PublicOrigin": {
+      "Type": "AWS::CloudFront::Function",
+      "Metadata": {
+        "com.aws.cloudformation.Context": {
+          "why": "Bind CSRF Origin checks to the actual viewer host without a circular stack dependency.",
+          "must": "Always overwrite the supplied header; gateway trusts it only after origin-secret authentication."
+        }
+      },
+      "Properties": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-public-origin"
+        },
+        "AutoPublish": true,
+        "FunctionConfig": {
+          "Comment": "Overwrite browser-supplied origin context with the actual CloudFront host.",
+          "Runtime": "cloudfront-js-2.0"
+        },
+        "FunctionCode": "function handler(event) { var r = event.request; r.headers['x-easi-public-origin'] = { value: 'https://' + r.headers.host.value }; r.headers['x-easi-viewer-ip'] = { value: event.viewer.ip }; return r; }"
+      }
+    },
+    "DemoHeaders": {
+      "Type": "AWS::CloudFront::ResponseHeadersPolicy",
+      "Metadata": {
+        "com.aws.cloudformation.Context": {
+          "why": "Apply basic HTTPS and content-type protections to synthetic demo assets.",
+          "must": "Do not weaken gateway response CSP or expose session credentials."
+        }
+      },
+      "Properties": {
+        "ResponseHeadersPolicyConfig": {
+          "Name": {
+            "Fn::Sub": "${AWS::StackName}-headers"
+          },
+          "SecurityHeadersConfig": {
+            "ContentTypeOptions": {
+              "Override": true
+            },
+            "ReferrerPolicy": {
+              "ReferrerPolicy": "no-referrer",
+              "Override": true
+            },
+            "FrameOptions": {
+              "FrameOption": "DENY",
+              "Override": true
+            },
+            "StrictTransportSecurity": {
+              "AccessControlMaxAgeSec": 31536000,
+              "IncludeSubdomains": false,
+              "Preload": false,
+              "Override": true
+            }
+          }
+        }
+      }
+    },
+    "Distribution": {
+      "Type": "AWS::CloudFront::Distribution",
+      "Metadata": {
+        "com.aws.cloudformation.Context": {
+          "why": "Serve a separate HTTPS viewer and AI login on a new CloudFront address.",
+          "must": "Do not alter existing marketing distributions, DNS, or certificates; API behavior never caches."
+        }
+      },
+      "Properties": {
+        "DistributionConfig": {
+          "Comment": "Isolated EASI View AI Assist Preview demonstration; no domain cutover.",
+          "Enabled": true,
+          "DefaultRootObject": "index.html",
+          "HttpVersion": "http2and3",
+          "IPV6Enabled": true,
+          "PriceClass": "PriceClass_100",
+          "Origins": [
+            {
+              "Id": "viewer",
+              "DomainName": {
+                "Fn::GetAtt": [
+                  "ViewerBucket",
+                  "RegionalDomainName"
+                ]
+              },
+              "OriginAccessControlId": {
+                "Ref": "ViewerOac"
+              },
+              "S3OriginConfig": {
+                "OriginAccessIdentity": ""
+              }
+            },
+            {
+              "Id": "gateway",
+              "DomainName": {
+                "Fn::Select": [
+                  2,
+                  {
+                    "Fn::Split": [
+                      "/",
+                      {
+                        "Fn::GetAtt": [
+                          "GatewayUrl",
+                          "FunctionUrl"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              "OriginCustomHeaders": [
+                {
+                  "HeaderName": "x-easi-origin-auth",
+                  "HeaderValue": {
+                    "Fn::Sub": "{{resolve:secretsmanager:${OriginSecret}:SecretString}}"
+                  }
+                }
+              ],
+              "CustomOriginConfig": {
+                "OriginProtocolPolicy": "https-only",
+                "OriginSSLProtocols": [
+                  "TLSv1.2"
+                ],
+                "OriginReadTimeout": 60
+              }
+            }
+          ],
+          "DefaultCacheBehavior": {
+            "TargetOriginId": "viewer",
+            "ViewerProtocolPolicy": "redirect-to-https",
+            "AllowedMethods": [
+              "GET",
+              "HEAD"
+            ],
+            "CachedMethods": [
+              "GET",
+              "HEAD"
+            ],
+            "Compress": true,
+            "CachePolicyId": {
+              "Ref": "StaticCache"
+            },
+            "ResponseHeadersPolicyId": {
+              "Ref": "DemoHeaders"
+            }
+          },
+          "CacheBehaviors": [
+            {
+              "PathPattern": "/api/ai/*",
+              "TargetOriginId": "gateway",
+              "ViewerProtocolPolicy": "https-only",
+              "AllowedMethods": [
+                "GET",
+                "HEAD",
+                "OPTIONS",
+                "PUT",
+                "PATCH",
+                "POST",
+                "DELETE"
+              ],
+              "CachedMethods": [
+                "GET",
+                "HEAD"
+              ],
+              "Compress": false,
+              "CachePolicyId": {
+                "Ref": "NoCache"
+              },
+              "OriginRequestPolicyId": {
+                "Ref": "ApiOriginRequest"
+              },
+              "FunctionAssociations": [
+                {
+                  "EventType": "viewer-request",
+                  "FunctionARN": {
+                    "Fn::GetAtt": [
+                      "PublicOrigin",
+                      "FunctionMetadata.FunctionARN"
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "ViewerCertificate": {
+            "CloudFrontDefaultCertificate": true
+          }
+        }
+      }
+    },
+    "ViewerBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Metadata": {
+        "com.aws.cloudformation.Context": {
+          "why": "Allow only this CloudFront distribution to retrieve viewer objects.",
+          "must": "Deny non-TLS access, preserve all public-access blocks and scope the distribution ARN."
+        }
+      },
+      "Properties": {
+        "Bucket": {
+          "Ref": "ViewerBucket"
+        },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "ReadFromDemoCloudFront",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "cloudfront.amazonaws.com"
+              },
+              "Action": "s3:GetObject",
+              "Resource": {
+                "Fn::Sub": "${ViewerBucket.Arn}/*"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "AWS:SourceArn": {
+                    "Fn::Sub": "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${Distribution}"
+                  },
+                  "AWS:SourceAccount": {
+                    "Ref": "AWS::AccountId"
+                  }
+                }
+              }
+            },
+            {
+              "Sid": "RequireTls",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "s3:*",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "ViewerBucket",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Sub": "${ViewerBucket.Arn}/*"
+                }
+              ],
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": "false"
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "DemoUrl": {
+      "Description": "Separate synthetic viewer demonstration.",
+      "Value": {
+        "Fn::Sub": "https://${Distribution.DomainName}/"
+      }
+    },
+    "LoginUrl": {
+      "Description": "Private invitation-code sign-in page.",
+      "Value": {
+        "Fn::Sub": "https://${Distribution.DomainName}/api/ai/login"
+      }
+    },
+    "ViewerBucket": {
+      "Description": "Upload only clean synthetic dist artifacts here.",
+      "Value": {
+        "Ref": "ViewerBucket"
+      }
+    },
+    "DistributionId": {
+      "Description": "Invalidate only this isolated demo distribution after static updates.",
+      "Value": {
+        "Ref": "Distribution"
+      }
+    },
+    "DemoAccessCodeSecretArn": {
+      "Description": "Retrieve privately into a mode-0600 local file; never print in logs or static assets.",
+      "Value": {
+        "Ref": "DemoAccessCode"
+      }
+    },
+    "GatewayFunctionName": {
+      "Description": "Emergency stop: set this function reserved concurrency to zero.",
+      "Value": {
+        "Ref": "Gateway"
+      }
+    }
+  },
+  "Conditions": {
+    "UseOpenAi": {
+      "Fn::Equals": [
+        {
+          "Ref": "AiProvider"
+        },
+        "openai"
+      ]
+    },
+    "UseBedrock": {
+      "Fn::Equals": [
+        {
+          "Ref": "AiProvider"
+        },
+        "bedrock"
+      ]
+    }
+  },
+  "Rules": {
+    "OpenAiRequiresSecret": {
+      "RuleCondition": {
+        "Fn::Equals": [
+          {
+            "Ref": "AiProvider"
+          },
+          "openai"
+        ]
+      },
+      "Assertions": [
+        {
+          "Assert": {
+            "Fn::Not": [
+              {
+                "Fn::Equals": [
+                  {
+                    "Ref": "OpenAiApiKeySecretArn"
+                  },
+                  ""
+                ]
+              }
+            ]
+          },
+          "AssertDescription": "OpenAI requires a server-side API-key secret ARN."
+        }
+      ]
+    }
+  }
+}

@@ -24,7 +24,7 @@ await writeFile(resolve(output, 'qa-entry.js'), [
 await build({ entryPoints: [resolve(output, 'qa-entry.js')], outfile: resolve(qa, 'exports.js'), bundle: true,
     format: 'esm', platform: 'browser', target: 'es2022', minify: true });
 await cp(resolve(root, 'dist/assets/decode-worker.js'), resolve(qa, 'decode-worker.js'));
-await writeFile(resolve(qa, 'lifecycle.html'), '<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/assets/app.css"></head><body><div id="app"></div></body></html>');
+await writeFile(resolve(qa, 'lifecycle.html'), '<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/standalone.css"><link rel="stylesheet" href="/assets/app.css"></head><body><div class="viewer-container"><div id="app" class="viewer-shell"></div></div></body></html>');
 
 const files = Array.from({ length: 3 }, (_, index) => createDicomFixture({ rows: 24, columns: 32,
     sopUid: `1.2.826.0.1.3680043.10.543.901.${index + 1}`, seriesUid: '1.2.826.0.1.3680043.10.543.901',
@@ -126,7 +126,11 @@ const pixels = async () => {
         {zoom:1,panX:0,panY:0,rotation:0,flipX:false,flipY:false},rectangle.width,rectangle.height);
     const imagePixels=[];
     for(let row=0;row<4;row++)for(let column=0;column<4;column++){
-        const point=window.__qaExports.transformPoint(matrix,(column+0.5)/4*dimensions[0],(row+0.5)/4*dimensions[1]);
+        // Pick actual source pixel centers. Fractional grid points can fall
+        // exactly on a pixel boundary, whose nearest sample changes on resize.
+        const sourceColumn=Math.min(dimensions[0]-1,Math.floor((column+0.5)/4*dimensions[0]));
+        const sourceRow=Math.min(dimensions[1]-1,Math.floor((row+0.5)/4*dimensions[1]));
+        const point=window.__qaExports.transformPoint(matrix,sourceColumn+0.5,sourceRow+0.5);
         const pixel=new Uint8Array(4);gl.readPixels(Math.floor(point.x*canvas.width/rectangle.width),canvas.height-1-Math.floor(point.y*canvas.height/rectangle.height),1,1,gl.RGBA,gl.UNSIGNED_BYTE,pixel);
         imagePixels.push([...pixel]);
     }
@@ -203,11 +207,11 @@ try {
     let probeValue = await browser.evaluate(`({coordinate:document.getElementById('probe-coordinate').textContent,value:document.getElementById('probe-value').textContent,stored:document.getElementById('probe-stored').textContent})`);
     assert.match(probeValue.coordinate, /Pixel \(0, 0\)/); assert.match(probeValue.value, /-3,024.*HU/); assert.match(probeValue.stored, /-1,000/);
     await click('[data-tool="distance"]'); await drag(points[0], points[1]);
-    assert.equal(await browser.evaluate(`document.querySelector('.measurement-label')?.textContent`), '3 mm');
+    assert.match(await browser.evaluate(`document.querySelector('.measurement-label')?.textContent`), /^3(?:\.0+)? mm$/);
     record('signed intensity probe and calibrated anisotropic distance', probeValue);
 
     const localSnapshot = await readState(); const localPixels = await pixels();
-    await importFiles([{ photometric: 'RGB' }]); await waitError('MONOCHROME');
+    await importFiles([{ photometric: 'RGB' }]); await waitError('samples per pixel');
     state = await readState(); assert.equal(state.source, localSnapshot.source); assert.equal(state.frames, 1); assert.equal(state.matrix, '2 × 2');
     assert.deepEqual((await pixels()).imagePixels, localPixels.imagePixels); record('unsupported local file preserves committed image');
     await click('#dismiss-error');
@@ -218,9 +222,9 @@ try {
     state = await readState(); assert.equal(state.matrix, '2 × 2'); assert.equal(state.source, 'LOCAL FILES');
     assert.deepEqual((await pixels()).imagePixels, localPixels.imagePixels); record('first-frame GPU failure rolls back to committed image');
     await click('#dismiss-error');
-    await browser.evaluate(`window.__qaWorker=window.Worker;window.Worker=class{constructor(){throw new Error('QA new source worker unavailable');}};`);
-    await importFiles([{ sopUid: '1.2.3.502' }]); await waitError('QA new source worker unavailable');
-    await browser.evaluate('window.Worker=window.__qaWorker');
+    await browser.evaluate(`window.__qaPostMessage=Worker.prototype.postMessage;Worker.prototype.postMessage=function(){throw new Error('QA source decode unavailable');};`);
+    await importFiles([{ sopUid: '1.2.3.502' }]); await waitError('QA source decode unavailable');
+    await browser.evaluate('Worker.prototype.postMessage=window.__qaPostMessage');
     assert.equal((await readState()).matrix, '2 × 2'); assert.deepEqual((await pixels()).imagePixels, localPixels.imagePixels);
     await click('#dismiss-error'); record('first-frame decoder failure rolls back to committed image');
 
@@ -234,10 +238,10 @@ try {
     await openUrl('/study');
     await browser.until(`document.getElementById('frame-overlay').textContent==='Image 01 / 1'`, 'Replacement stream did not display its first image.');
     await openUrl('/405'); await waitError('HTTP 405');
-    state = await readState(); assert.equal(state.frames, 3); assert.deepEqual((await pixels()).imagePixels, remotePixels.imagePixels);
+    state = await readState(); assert.equal(state.frames, 3); assert.deepEqual(state.lastUpload,remoteSnapshot.lastUpload);assert.deepEqual((await pixels()).imagePixels, remotePixels.imagePixels);
     assert.equal(responses.at(-1).canceled, true); await click('#dismiss-error');
     record('superseding a partial stream cancels it and preserves the last committed source');
-    for (const [path, message] of [['/405', 'HTTP 405'], ['/bad-native', 'MONOCHROME']]) {
+    for (const [path, message] of [['/405', 'HTTP 405'], ['/bad-native', 'samples per pixel']]) {
         await openUrl(path); await waitError(message); state = await readState();
         assert.equal(state.frames, remoteSnapshot.frames); assert.equal(state.matrix, remoteSnapshot.matrix);
         assert.deepEqual((await pixels()).imagePixels, remotePixels.imagePixels); await click('#dismiss-error');
@@ -246,7 +250,7 @@ try {
     await openUrl('/partial-failure');
     await browser.until(`document.getElementById('source-badge').textContent==='REMOTE SOURCE' && document.getElementById('frame-overlay').textContent==='Image 01 / 1'`, 'Partial failure did not show its first image.');
     assert.equal(responses.at(-1).ended, false);
-    await waitError('MONOCHROME'); state = await readState();
+    await waitError('samples per pixel'); state = await readState();
     assert.equal(state.frames, 3); assert.equal(state.matrix, remoteSnapshot.matrix); assert.deepEqual((await pixels()).imagePixels, remotePixels.imagePixels);
     await click('#dismiss-error'); record('malformed multipart tail rolls back after progressive first display');
 
@@ -278,10 +282,15 @@ try {
     record('actual background-tab visibility pauses cine');
 
     await browser.evaluate(`(() => {
-        const Original=window.Worker;window.__qaUndelayedWorker=Original;
-        window.Worker=class extends Original{constructor(...args){super(...args);Object.defineProperty(this,'onmessage',{
-            configurable:true,set:handler=>this.addEventListener('message',event=>setTimeout(()=>handler(event),350))
-        });}};
+        const original=Worker.prototype.postMessage,workers=new Set(),timers=new Set();
+        Worker.prototype.postMessage=function(...args){
+            if(!workers.has(this)){
+                const handler=this.onmessage;this.__qaMessageHandler=handler;workers.add(this);
+                this.onmessage=event=>{const timer=setTimeout(()=>{timers.delete(timer);handler(event);},350);timers.add(timer);};
+            }
+            return original.apply(this,args);
+        };
+        window.__qaRestoreWorkerMessages=()=>{Worker.prototype.postMessage=original;for(const worker of workers)worker.onmessage=worker.__qaMessageHandler;for(const timer of timers)clearTimeout(timer);};
     })()`);
     await click('[data-demo="us"]'); await ready('US', 24);
     const frozenBefore = await readState(); const frozenPixels = await pixels();
@@ -295,7 +304,7 @@ try {
     await click('#cine-toggle');
     await browser.until(`document.getElementById('image-stage').classList.contains('frame-loading')`, 'Second delayed cine decode did not begin.');
     await slider(6); state = await readState(); assert.equal(state.frame, 7); assert.equal(state.playing, false);
-    await browser.evaluate(`window.Worker=window.__qaUndelayedWorker`);
+    await browser.evaluate(`window.__qaRestoreWorkerMessages()`);
     record('seeking during in-flight cine commits the requested manual frame');
 
     await browser.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
@@ -322,7 +331,7 @@ try {
     await browser.evaluate(`window.Worker=window.__qaOriginalWorker`);
     await openUrl('/partial-failure');
     await browser.until(`document.getElementById('source-badge').textContent==='REMOTE SOURCE' && document.getElementById('frame-overlay').textContent==='Image 01 / 1'`, 'Cold partial source did not display.');
-    await waitError('MONOCHROME'); state = await readState(); assert.equal(state.empty, true); assert.equal(state.overlay, 'No image loaded');
+    await waitError('samples per pixel'); state = await readState(); assert.equal(state.empty, true); assert.equal(state.overlay, 'No image loaded');
     assert.ok(['—', ''].includes(state.matrix)); assert.ok(['—', ''].includes(state.samples)); record('failed first source clears progressive pixels and stale metadata');
     await installHooks();
     await importFiles([{ rows: 2, columns: 2, frames: 3, bitsAllocated: 8, bitsStored: 8,
@@ -338,7 +347,7 @@ try {
     await ready('CT', 16); await browser.evaluate(`window.__qaApp.dispose();window.__qaApp.dispose();window.__qaApp=window.__qaExports.startApp(document.getElementById('app'))`);
     await ready('CT', 16); const workersBeforeDrop = await browser.evaluate('window.__qaWorkerCount');
     await browser.evaluate(`(() => {const transfer=new DataTransfer();transfer.items.add(new File([window.__qaExports.createDicomFixture({sopUid:'1.2.3.999'})],'synthetic-drop.dcm',{type:'application/dicom'}));document.getElementById('app').dispatchEvent(new DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:transfer}));})()`);
-    await ready('CT', 1, 'LOCAL FILES'); assert.equal(await browser.evaluate('window.__qaWorkerCount'), workersBeforeDrop + 1);
+    await ready('CT', 1, 'LOCAL FILES'); assert.equal(await browser.evaluate('window.__qaWorkerCount'), workersBeforeDrop);
     record('mount/dispose/remount releases listeners and handles each file drop once');
     await browser.evaluate('window.__qaApp.dispose()');
 

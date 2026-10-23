@@ -5,6 +5,7 @@ export class FrameCache {
         this.budget = budget;
         this.bytes = 0;
         this.entries = new Map();
+        this.buffers = new Map();
     }
 
     get(key) {
@@ -17,23 +18,37 @@ export class FrameCache {
 
     set(key, frame) {
         this.delete(key);
-        const bytes = frame.samples.byteLength;
-        if (bytes > this.budget) return frame;
-        while (this.bytes + bytes > this.budget) this.delete(this.entries.keys().next().value);
-        this.entries.set(key, { frame, bytes });
-        this.bytes += bytes;
+        // Shared LUT backing stores count once while any cached frame references them.
+        const buffers = new Set([frame.samples, frame.modalityLut?.entries, frame.voiLut?.entries,
+            frame.palette?.red, frame.palette?.green, frame.palette?.blue]
+            .filter(ArrayBuffer.isView).map(view => view.buffer));
+        const total = [...buffers].reduce((sum, buffer) => sum + buffer.byteLength, 0);
+        if (total > this.budget) return frame;
+        const additional = () => [...buffers].reduce((sum, buffer) => sum + (this.buffers.has(buffer) ? 0 : buffer.byteLength), 0);
+        while (this.bytes + additional() > this.budget) this.delete(this.entries.keys().next().value);
+        this.entries.set(key, { frame, buffers });
+        for (const buffer of buffers) {
+            const count = this.buffers.get(buffer) ?? 0;
+            if (count === 0) this.bytes += buffer.byteLength;
+            this.buffers.set(buffer, count + 1);
+        }
         return frame;
     }
 
     delete(key) {
         const entry = this.entries.get(key);
         if (!entry) return;
-        this.bytes -= entry.bytes;
+        for (const buffer of entry.buffers) {
+            const count = this.buffers.get(buffer) - 1;
+            if (count === 0) { this.buffers.delete(buffer); this.bytes -= buffer.byteLength; }
+            else this.buffers.set(buffer, count);
+        }
         this.entries.delete(key);
     }
 
     clear() {
         this.entries.clear();
+        this.buffers.clear();
         this.bytes = 0;
     }
 }
