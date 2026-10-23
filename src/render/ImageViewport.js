@@ -1,7 +1,7 @@
-import { normalizeWindow, paddingRange, renderScalarToRgba, validateFrame } from './DisplayMath.js';
+import { normalizeWindow, paddingRange, renderColorToRgba, renderScalarToRgba, validateFrame, isColorFrame } from './DisplayMath.js';
 import { createImageTransform, inverseTransformPoint, transformPoint } from './ViewportTransform.js';
 
-export { renderScalarToRgba, measureDistance, probe } from './DisplayMath.js';
+export { renderColorToRgba, renderScalarToRgba, measureDistance, probe, isColorFrame } from './DisplayMath.js';
 
 const VERTEX_SHADER = `#version 300 es
 in vec2 position;
@@ -17,24 +17,69 @@ void main() {
 
 const FRAGMENT_SHADER = `#version 300 es
 precision highp float;
+precision highp int;
 uniform highp sampler2D samples;
+uniform bool colorFrame;
 uniform vec2 rescale;
 uniform vec2 window;
 uniform bool linearExact;
+uniform bool sigmoid;
+uniform bool hasModalityLut;
+uniform bool hasVoiLut;
+uniform bool paletteFrame;
+uniform highp sampler2D modalityTable;
+uniform highp sampler2D voiTable;
+uniform highp sampler2D paletteTable;
+uniform vec2 modalityDomain;
+uniform vec2 voiDomain;
+uniform vec2 paletteDomain;
+uniform int modalityColumns;
+uniform int voiColumns;
+uniform int paletteColumns;
+uniform float voiMaximum;
+uniform float paletteMaximum;
 uniform bool inverted;
 uniform bool hasPadding;
 uniform vec2 padding;
+uniform bool hasCircularShutter;
+uniform vec2 shutterCenter;
+uniform vec2 shutterRadiusValue;
 in vec2 textureCoordinate;
 out vec4 color;
+ivec2 lookupPosition(float value, vec2 domain, int columns) {
+    int index = int(clamp(floor(value - domain.x), 0.0, domain.y - 1.0));
+    return ivec2(index % columns, index / columns);
+}
 void main() {
+    if (hasCircularShutter) {
+        ivec2 size = textureSize(samples, 0);
+        ivec2 pixel = clamp(ivec2(floor(textureCoordinate * vec2(size))), ivec2(0), size - ivec2(1)) + ivec2(1);
+        ivec2 delta = pixel - ivec2(shutterCenter);
+        int radius = int(shutterRadiusValue.x);
+        // Dimensions and radius are at most 8192: all products/sums fit int32.
+        if (delta.x * delta.x + delta.y * delta.y > radius * radius) {
+            color = vec4(vec3(shutterRadiusValue.y), 1.0);
+            return;
+        }
+    }
+    if (colorFrame) {
+        color = vec4(texture(samples, textureCoordinate).rgb, 1.0);
+        return;
+    }
     float stored = texture(samples, textureCoordinate).r;
     if (hasPadding && stored >= padding.x && stored <= padding.y) {
         color = vec4(0.0, 0.0, 0.0, 1.0);
         return;
     }
-    float value = stored * rescale.x + rescale.y;
+    if (paletteFrame) {
+        color = vec4(texelFetch(paletteTable, lookupPosition(stored, paletteDomain, paletteColumns), 0).rgb / paletteMaximum, 1.0);
+        return;
+    }
+    float value = hasModalityLut ? texelFetch(modalityTable, lookupPosition(stored, modalityDomain, modalityColumns), 0).r : stored * rescale.x + rescale.y;
     float level;
-    if (linearExact) level = clamp((value - window.x) / window.y + 0.5, 0.0, 1.0);
+    if (hasVoiLut) level = texelFetch(voiTable, lookupPosition(value, voiDomain, voiColumns), 0).r / voiMaximum;
+    else if (sigmoid) level = 1.0 / (1.0 + exp(-4.0 * (value - window.x) / window.y));
+    else if (linearExact) level = clamp((value - window.x) / window.y + 0.5, 0.0, 1.0);
     else if (window.y <= 1.0) level = value <= window.x - 0.5 ? 0.0 : 1.0;
     else level = clamp((value - (window.x - 0.5)) / (window.y - 1.0) + 0.5, 0.0, 1.0);
     if (inverted) level = 1.0 - level;
@@ -55,7 +100,7 @@ function compileShader(gl, type, source) {
     return shader;
 }
 
-/** Independent scalar renderer. Raw samples upload once; interaction changes GPU uniforms. */
+/** Independent image renderer. Native samples upload once; interaction changes GPU uniforms. */
 export class ImageViewport {
     constructor(canvas) {
         if (!canvas || typeof canvas.getContext !== 'function') throw new TypeError('An image viewport requires a canvas.');
@@ -69,6 +114,8 @@ export class ImageViewport {
         this._contextLost = false;
         this._sourceDirty = true;
         this._sourceCanvas = null;
+        this._lookupTextures = new Map();
+        this._gpuLutValidatedFrames = new WeakSet();
         this._gl = canvas.getContext('webgl2', { alpha: false, antialias: false, depth: false, stencil: false });
         this._context = this._gl ? null : canvas.getContext('2d', { alpha: false });
         if (!this._gl && !this._context) throw new Error('This browser cannot create a WebGL2 or Canvas2D image viewport.');
@@ -76,6 +123,7 @@ export class ImageViewport {
             event.preventDefault();
             this._contextLost = true;
             this._texture = null;
+            this._lookupTextures.clear();
             this._notify('The graphics context was lost. Waiting for browser recovery.');
         };
         this._onContextRestored = () => {
@@ -98,7 +146,7 @@ export class ImageViewport {
     }
 
     get state() { return { ...this._state }; }
-    get backend() { return this._gl ? 'WebGL2 · raw scalar texture' : 'Canvas2D · CPU reference'; }
+    get backend() { return this._gl ? this.frame?.photometric === 'RGB' ? 'WebGL2 · RGB texture' : this.frame?.photometric === 'PALETTE COLOR' ? 'WebGL2 · palette LUT' : 'WebGL2 · raw scalar texture' : 'Canvas2D · CPU reference'; }
     get center() { return this._state.center; }
     get width() { return this._state.width; }
     get zoom() { return this._state.zoom; }
@@ -147,7 +195,7 @@ export class ImageViewport {
         gl.enableVertexAttribArray(location);
         gl.vertexAttribPointer(location, 2, gl.FLOAT, false, 0, 0);
         gl.bindVertexArray(null);
-        this._uniforms = Object.fromEntries(['imageToClip', 'dimensions', 'samples', 'rescale', 'window', 'linearExact', 'inverted', 'hasPadding', 'padding']
+        this._uniforms = Object.fromEntries(['imageToClip', 'dimensions', 'samples', 'colorFrame', 'rescale', 'window', 'linearExact', 'sigmoid', 'hasModalityLut', 'hasVoiLut', 'paletteFrame', 'modalityTable', 'voiTable', 'paletteTable', 'modalityDomain', 'voiDomain', 'paletteDomain', 'modalityColumns', 'voiColumns', 'paletteColumns', 'voiMaximum', 'paletteMaximum', 'inverted', 'hasPadding', 'padding', 'hasCircularShutter', 'shutterCenter', 'shutterRadiusValue']
             .map(name => [name, gl.getUniformLocation(program, name)]));
         this._texture = null;
         gl.disable(gl.DEPTH_TEST);
@@ -170,20 +218,84 @@ export class ImageViewport {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
-        // Every signed/unsigned 16-bit integer is exactly representable as float32.
-        // This temporary upload copy is not retained by the viewport.
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, frame.columns, frame.rows, 0, gl.RED, gl.FLOAT, Float32Array.from(frame.samples));
+        if (frame.photometric === 'RGB') {
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB8, frame.columns, frame.rows, 0, gl.RGB, gl.UNSIGNED_BYTE, frame.samples);
+        } else {
+            // Every signed/unsigned 16-bit integer is exactly representable as float32.
+            // This temporary upload copy is not retained by the viewport.
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, frame.columns, frame.rows, 0, gl.RED, gl.FLOAT, Float32Array.from(frame.samples));
+        }
+        this._uploadLookupTextures(maximum);
         const error = gl.getError();
         if (error !== gl.NO_ERROR) {
             gl.deleteTexture(this._texture);
             this._texture = null;
-            throw new Error(`The GPU could not upload this scalar frame (WebGL error ${error}).`);
+            throw new Error(`The GPU could not upload this image frame (WebGL error ${error}).`);
+        }
+    }
+
+    _clearLookupTextures() {
+        if (this._gl && !this._contextLost) for (const entry of this._lookupTextures.values()) this._gl.deleteTexture(entry.texture);
+        this._lookupTextures.clear();
+    }
+
+    _uploadLookupTextures(maximum) {
+        this._clearLookupTextures();
+        const gl = this._gl;
+        for (const [name, table, color] of [['modality', this.frame.modalityLut, false], ['voi', this.frame.voiLut, false], ['palette', this.frame.palette, true]]) {
+            if (!table) continue;
+            if (table.pending || !Number.isInteger(table.count) || table.count < 1 || table.count > 65536) throw new Error('The display lookup table is incomplete or invalid.');
+            const columns = Math.min(table.count, maximum);
+            const rows = Math.ceil(table.count / columns);
+            if (rows > maximum) throw new Error('This GPU cannot hold the display lookup table.');
+            const data = new Float32Array(columns * rows * (color ? 4 : 1));
+            if (color) for (let index = 0; index < table.count; index++) {
+                data[index * 4] = table.red[index]; data[index * 4 + 1] = table.green[index]; data[index * 4 + 2] = table.blue[index]; data[index * 4 + 3] = 1;
+            } else data.set(table.entries);
+            const texture = gl.createTexture();
+            this._lookupTextures.set(name, { texture, columns });
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texImage2D(gl.TEXTURE_2D, 0, color ? gl.RGBA32F : gl.R32F, columns, rows, 0, color ? gl.RGBA : gl.RED, gl.FLOAT, data);
+        }
+    }
+
+    _initialPresentation(frame) {
+        let center = frame?.window?.center, width = frame?.window?.width;
+        if (!Number.isFinite(center) || !Number.isFinite(width)) {
+            const min = frame?.range?.min ?? 0, max = frame?.range?.max ?? 1;
+            center = (min + max + (frame?.voiFunction === 'LINEAR_EXACT' ? 0 : 1)) / 2;
+            width = Math.max(1, max - min + (frame?.voiFunction === 'LINEAR_EXACT' ? 0 : 1));
+        }
+        return { ...normalizeWindow(center, width, frame?.voiFunction), ...DEFAULT_TRANSFORM,
+            voiMode: frame?.voiMode ?? (frame?.voiLut ? 'lut' : 'window'), windowOverride: false };
+    }
+
+    _validateGpuPresentation(frame, state) {
+        if (!this._gl || !frame || isColorFrame(frame)) return;
+        if (frame.voiLut && !frame.modalityLut && !this._gpuLutValidatedFrames.has(frame)) {
+            const slope = frame.slope ?? 1, intercept = frame.intercept ?? 0;
+            if (Math.fround(slope) !== slope || Math.fround(intercept) !== intercept ||
+                frame.samples.some(stored => Math.fround(stored * slope) !== stored * slope ||
+                    Math.fround(stored * slope + intercept) !== stored * slope + intercept)) {
+                throw new RangeError('The GPU cannot calculate these VOI table indices exactly.');
+            }
+            this._gpuLutValidatedFrames.add(frame);
+        }
+        const values = [frame.slope ?? 1, frame.intercept ?? 0];
+        if (values.some(value => !Number.isFinite(Math.fround(value))) || Math.fround(values[0]) === 0 ||
+            state.voiMode !== 'lut' && (!Number.isFinite(Math.fround(state.center)) || !Number.isFinite(Math.fround(state.width)) || Math.fround(state.width) <= 0)) {
+            throw new RangeError('The image presentation values exceed this GPU numeric profile.');
         }
     }
 
     setFrame(frame) {
         this._assertActive();
         validateFrame(frame);
+        this._validateGpuPresentation(frame, this._initialPresentation(frame));
         this.frame = frame;
         this._sourceDirty = true;
         try {
@@ -191,6 +303,7 @@ export class ImageViewport {
         } catch (error) {
             if (this._texture && this._gl && !this._contextLost) this._gl.deleteTexture(this._texture);
             this._texture = null;
+            this._clearLookupTextures();
             this.frame = null;
             this.render();
             throw error;
@@ -202,6 +315,7 @@ export class ImageViewport {
         this._assertActive();
         if (this._texture && this._gl && !this._contextLost) this._gl.deleteTexture(this._texture);
         this._texture = null;
+        this._clearLookupTextures();
         this.frame = null;
         if (this._sourceCanvas) {
             this._sourceCanvas.width = 0;
@@ -215,13 +329,17 @@ export class ImageViewport {
 
     setWindow(center, width) {
         this._assertActive();
-        Object.assign(this._state, normalizeWindow(center, width, this.frame?.voiFunction));
+        if (isColorFrame(this.frame)) throw new TypeError('Window and level apply to grayscale frames; RGB channels are displayed directly.');
+        const candidate = { ...this._state, ...normalizeWindow(center, width, this.frame?.voiFunction), voiMode: 'window', windowOverride: true };
+        this._validateGpuPresentation(this.frame, candidate);
+        this._state = candidate;
         this._sourceDirty = true;
         this.render();
     }
 
     setTransform(changes) {
         this._assertActive();
+        if (isColorFrame(this.frame) && changes.invert) throw new TypeError('Grayscale inversion is unavailable for RGB frames.');
         for (const key of ['zoom', 'panX', 'panY', 'rotation']) {
             if (changes[key] !== undefined && !Number.isFinite(changes[key])) throw new TypeError(`${key} must be finite.`);
         }
@@ -238,15 +356,9 @@ export class ImageViewport {
 
     reset() {
         this._assertActive();
-        let center = this.frame?.window?.center;
-        let width = this.frame?.window?.width;
-        if (!Number.isFinite(center) || !Number.isFinite(width)) {
-            const min = this.frame?.range?.min ?? 0;
-            const max = this.frame?.range?.max ?? 1;
-            center = (min + max + (this.frame?.voiFunction === 'LINEAR_EXACT' ? 0 : 1)) / 2;
-            width = Math.max(1, max - min + (this.frame?.voiFunction === 'LINEAR_EXACT' ? 0 : 1));
-        }
-        this._state = { ...normalizeWindow(center, width, this.frame?.voiFunction), ...DEFAULT_TRANSFORM };
+        const candidate = this._initialPresentation(this.frame);
+        this._validateGpuPresentation(this.frame, candidate);
+        this._state = candidate;
         this._sourceDirty = true;
         this.render();
     }
@@ -287,6 +399,7 @@ export class ImageViewport {
     }
 
     _renderGpu() {
+        this._validateGpuPresentation(this.frame, this._state);
         const gl = this._gl;
         gl.viewport(0, 0, this.canvas.width, this.canvas.height);
         gl.clear(gl.COLOR_BUFFER_BIT);
@@ -298,6 +411,7 @@ export class ImageViewport {
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, this._texture);
         gl.uniform1i(uniforms.samples, 0);
+        gl.uniform1i(uniforms.colorFrame, this.frame.photometric === 'RGB' ? 1 : 0);
         gl.uniformMatrix3fv(uniforms.imageToClip, false, new Float32Array([
             matrix.a * 2 / this._width, matrix.b * -2 / this._height, 0,
             matrix.c * 2 / this._width, matrix.d * -2 / this._height, 0,
@@ -306,11 +420,31 @@ export class ImageViewport {
         gl.uniform2f(uniforms.dimensions, this.frame.columns, this.frame.rows);
         gl.uniform2f(uniforms.rescale, this.frame.slope ?? 1, this.frame.intercept ?? 0);
         gl.uniform2f(uniforms.window, this._state.center, this._state.width);
+        gl.uniform1i(uniforms.paletteFrame, this.frame.photometric === 'PALETTE COLOR' ? 1 : 0);
+        gl.uniform1i(uniforms.sigmoid, this.frame.voiFunction === 'SIGMOID' ? 1 : 0);
+        gl.uniform1i(uniforms.hasModalityLut, this.frame.modalityLut ? 1 : 0);
+        gl.uniform1i(uniforms.hasVoiLut, this.frame.voiLut && this._state.voiMode === 'lut' ? 1 : 0);
+        let unit = 1;
+        for (const name of ['modality', 'voi', 'palette']) {
+            const table = this.frame[name === 'palette' ? 'palette' : `${name}Lut`];
+            const texture = this._lookupTextures.get(name);
+            gl.activeTexture(gl.TEXTURE0 + unit);
+            gl.bindTexture(gl.TEXTURE_2D, texture?.texture ?? this._texture);
+            gl.uniform1i(uniforms[`${name}Table`], unit++);
+            gl.uniform2f(uniforms[`${name}Domain`], table?.firstMapped ?? 0, table?.count ?? 1);
+            gl.uniform1i(uniforms[`${name}Columns`], texture?.columns ?? 1);
+        }
+        gl.uniform1f(uniforms.voiMaximum, 2 ** (this.frame.voiLut?.bits ?? 8) - 1);
+        gl.uniform1f(uniforms.paletteMaximum, 2 ** (this.frame.palette?.bits ?? 8) - 1);
         gl.uniform1i(uniforms.linearExact, this.frame.voiFunction === 'LINEAR_EXACT' ? 1 : 0);
-        gl.uniform1i(uniforms.inverted, (this.frame.photometric === 'MONOCHROME1') !== this._state.invert ? 1 : 0);
+        gl.uniform1i(uniforms.inverted, Boolean(this.frame.presentationInvert ?? this.frame.photometric === 'MONOCHROME1') !== this._state.invert ? 1 : 0);
         const padding = paddingRange(this.frame);
         gl.uniform1i(uniforms.hasPadding, padding ? 1 : 0);
         gl.uniform2f(uniforms.padding, padding?.min ?? 0, padding?.max ?? 0);
+        const shutter = this.frame.displayShutter;
+        gl.uniform1i(uniforms.hasCircularShutter, shutter ? 1 : 0);
+        gl.uniform2f(uniforms.shutterCenter, shutter?.column ?? 1, shutter?.row ?? 1);
+        gl.uniform2f(uniforms.shutterRadiusValue, shutter?.radius ?? 1, (shutter?.presentationValue ?? 0) / 65535);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
         gl.bindVertexArray(null);
     }
@@ -331,7 +465,7 @@ export class ImageViewport {
             this._sourceCanvas.height = this.frame.rows;
             const source = this._sourceCanvas.getContext('2d');
             const pixels = source.createImageData(this.frame.columns, this.frame.rows);
-            pixels.data.set(renderScalarToRgba(this.frame, this._state));
+            pixels.data.set(isColorFrame(this.frame) ? renderColorToRgba(this.frame) : renderScalarToRgba(this.frame, this._state));
             source.putImageData(pixels, 0, 0);
             this._sourceDirty = false;
         }
@@ -363,10 +497,19 @@ export class ImageViewport {
             this._context.fillStyle = '#000';
             this._context.fillRect(0, 0, this.canvas.width, this.canvas.height);
         }
+        this._clearLookupTextures();
         this.frame = null;
         this._texture = null;
         this._sourceCanvas = null;
         this._disposed = true;
+        // This viewport owns its canvas/context. Halt that context explicitly
+        // after object cleanup so removed panes do not await browser GC before
+        // returning a graphics context slot. No restoration listener remains.
+        try {
+            if (this._gl && !this._contextLost && !this._gl.isContextLost?.()) {
+                this._gl.getExtension?.('WEBGL_lose_context')?.loseContext?.();
+            }
+        } catch { /* Context release is best effort; owned-source cleanup is complete. */ }
     }
 }
 

@@ -1,21 +1,68 @@
 {
   "name": "@xinonix/easi-view",
-  "version": "0.1.0-alpha.0",
-  "private": true,
+  "version": "1.0.0-rc.1",
+  "private": false,
   "type": "module",
-  "description": "An independent browser DICOM viewer built on EASI JS streaming pipelines.",
+  "description": "A brandable zero-footprint DICOM viewer and embeddable browser SDK built on EASI JS.",
   "author": "Xinonix Interactive Development, Inc.",
-  "repository": { "type": "git", "url": "git+https://github.com/davidvaccaro/easi-view.git" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/davidvaccaro/easi-view.git"
+  },
   "license": "SEE LICENSE IN LICENSE",
-  "engines": { "node": "22.x || 24.x" },
+  "engines": {
+    "node": "22.x || 24.x"
+  },
   "scripts": {
     "dev": "node tools/dev-server.mjs",
     "build": "node tools/build.mjs",
     "preview": "node tools/dev-server.mjs --production",
     "test": "node --test test/*.test.js",
+    "test:corpus": "node tools/local-corpus-check.mjs",
+    "test:corpus:campaign": "node tools/local-corpus-campaign.mjs",
     "check": "npm test && npm run build && node tools/check-dist.mjs",
-    "artifact:pack": "node tools/pack-artifact.mjs"
+    "artifact:pack": "node tools/pack-artifact.mjs",
+    "sdk:pack": "node tools/pack-sdk.mjs",
+    "prepack": "npm run build && node tools/check-dist.mjs"
   },
-  "dependencies": { "@xinonix/easi-js": "1.0.0" },
-  "devDependencies": { "esbuild": "0.28.2" }
+  "dependencies": {
+    "@xinonix/easi-js": "1.0.1",
+    "jpeg-js": "0.4.4"
+  },
+  "devDependencies": {
+    "dcmjs-codecs": "0.0.8",
+    "esbuild": "0.28.2"
+  },
+  "overrides": {
+    "adm-zip": "0.6.1"
+  },
+  "main": "./dist/assets/easi-view.js",
+  "module": "./dist/assets/easi-view.js",
+  "types": "./dist/assets/easi-view.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/assets/easi-view.d.ts",
+      "import": "./dist/assets/easi-view.js"
+    },
+    "./assets/*": "./dist/assets/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist/",
+    "docs/",
+    "licenses/",
+    "examples/dimse-gateway/",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "NOTICE",
+    "tools/copy-assets.mjs"
+  ],
+  "bin": {
+    "easi-view-copy-assets": "tools/copy-assets.mjs"
+  },
+  "publishConfig": {
+    "access": "public",
+    "tag": "next"
+  }
 }

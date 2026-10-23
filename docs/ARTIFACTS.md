@@ -1,62 +1,119 @@
 # Independent build and artifacts
 
-EASI View is a standalone project and Git repository. Its package lock, build,
-tests, CI workflow, version, license and releases belong to this repository.
-EASI JS is a pinned npm dependency; no sibling checkout, git submodule or copied
-EASI implementation is required.
+EASI View owns its Git repository, package lock, tests, CI, version, license and
+releases. EASI JS remains an independent exact-version package dependency. No
+sibling checkout, submodule or viewer-owned fork is required.
+
+The viewer is preparing **1.0.0-rc.1** with **@xinonix/easi-js@1.0.1**. Viewer
+registry publication is pending. The independent core 1.0.1 is published and
+its registry archive was verified against the tested artifact. The former
+`1.0.1-corpus.0` vendored candidate belongs to historical qualification, not the
+release dependency contract.
 
 ## Outputs
 
 | Location | Contents | Tracked? |
 | --- | --- | --- |
-| `dist/` | Deployable static viewer, worker, styles and license notices | No |
-| `artifacts/releases/` | Versioned `.tar.gz`, SHA-256 checksum and per-file manifest | No |
-| `artifacts/render-browser/` | Actual shader/reference verification results | No |
-| `artifacts/browser/` | Integration evidence and screenshots | No |
-| `docs/` | Architecture, support matrix, licensing and competitive roadmap | Yes |
+| `dist/` | Static viewer, embeddable ESM SDK, host example, worker, styles and notices | No |
+| `artifacts/releases/` | Versioned static `.tar.gz`, installable npm `.tgz`, hashes and manifests | No |
+| `artifacts/browser*/` | Generated browser qualification and technical receipts | No |
+| `artifacts/render-browser/` | Shader/reference verification | No |
+| `artifacts/local-corpus/` | Private explicit corpus reports; no public imaging payloads | No |
+| `docs/` | Supported profiles, architecture, release gates and historical backlog | Yes |
 
 ## Build a distribution
+
+From a clean release checkout using Node.js 22 or 24:
 
 ```sh
 npm ci
 npm run check
 npm run artifact:pack
+npm run sdk:pack
 ```
 
-The artifact command validates the existing `dist/` and packages it. Run `npm run
-build` after source changes before packaging. The manifest records the viewer
-version, pinned EASI JS version, source commit/cleanliness, build-input fingerprint,
-archive hash, and every
-included file's size and hash. It does not include personal input files or browser
-profiles. Use a clean Git checkout for a release artifact.
+`check` runs the numeric/runtime suite, builds both standalone and SDK bundles,
+and validates the distribution. Packaging refuses a stale build. Manifests record
+the exact source fingerprint, pinned EASI JS version and per-file hashes. The
+static archive also records Git commit/cleanliness; publish from a clean tagged
+checkout and retain the qualification receipt for that same source fingerprint.
+See [RELEASING.md](RELEASING.md) for the complete release sequence.
 
-Packaging rejects a stale build when source, dependency lock or license inputs
-have changed. Rebuild before packaging to keep provenance accurate.
-It also verifies the complete distribution inventory, rejecting modified output
-or leftover browser-QA modules before they can enter a deployment artifact.
+The build rejects an installed EASI JS version that differs from the exact pin.
+Its source fingerprint includes the installed core source/package/notices and
+the release-profile guard, not merely a version string. Distribution inventory
+checks reject changed output and leftover browser-QA modules.
 
-Extract the `.tar.gz` into a static hosting root. Serve JavaScript modules and the
-worker with the correct content type. Preserve LICENSE, NOTICE and licenses/.
-The artifact has no required server application and does not upload local files.
-Archive integration remains subject to CORS, HTTPS and the chosen archive's access
-controls. No hosting deployment is performed automatically.
+## AI-free release contract
 
-## CI
+The production build records `releaseProfile: "core-no-ai"` and its actual owned
+bundled modules in `build-info.json`. AI implementation modules are rejected even
+when their exports are unused or the feature is disabled. Distribution checks
+reject assistant APIs/UI, provider endpoints and AI deployment/profile assets.
+The SDK documentation allowlist excludes the old active AI setup guides while
+retaining the deferred historical [AI backlog](AI_BACKLOG.md).
 
-The GitHub Actions workflow runs this repository's tests and build on Node.js 22
-and 24. The Node.js 24 job packages the verified static distribution and stores it
-as a private workflow artifact for 14 days. It does not publish to npm, GitHub
-Pages, AWS, or a public release. Build-tool actions are pinned to reviewed commits.
+DICOM SEG/SR/GSPS and explicitly supplied overlay data remain ordinary supported
+derived-result features. Imported provenance such as `source: 'ai'` does not
+invoke a model. Source-bound result display is independent of AI execution.
 
-Local browser verification uses an isolated Chrome profile. Set
-`EASI_VIEW_BROWSER` to a Chrome executable on another machine. Browser QA is an
-additional explicit check; the initial CI workflow runs the portable numeric,
-parsing, geometry, worker/cache and distributable checks.
+## Static hosting and embedding
+
+Extract the `.tar.gz` into a static hosting root. Serve `.js` as JavaScript and
+`.wasm` as `application/wasm`; preserve LICENSE, NOTICE and licenses/. No server
+application, AI sign-in, model account or inference gateway is needed for local
+viewing or generated examples. Archive access requires the configured archive's
+HTTPS, CORS and host-managed authentication. Original local files stay local.
+
+For embedding, preserve `assets/easi-view.js`, `decode-worker.js`, codec WASM and
+adjacent linked legal files. `embed.html` is a working host example. The SDK
+carries its Shadow DOM stylesheet. `build-info.json` records `inlineStyleSha256`;
+hosts can allow that exact CSP style hash or supply a matching `styleNonce`.
+Worker/module execution and WebAssembly need the documented CSP permissions.
+See [EMBEDDING.md](EMBEDDING.md).
+
+## Installable SDK and framework assets
+
+With EASI JS 1.0.1 independently available from the registry, the locally packed
+candidate can be installed in an independent consumer without sibling source
+directories:
 
 ```sh
-node tools/render-browser-check.mjs
-node tools/browser-smoke.mjs
+npm install ./xinonix-easi-view-1.0.0-rc.1.tgz
+npx easi-view-copy-assets public/easi-view
 ```
 
-The integration runner expects the preview at `http://127.0.0.1:5174/`; build and
-start `npm run preview` first. See each script's output for verification evidence.
+A later published candidate can instead use `npm install @xinonix/easi-view@next`.
+That command is a post-publication path, not a claim that a viewer package is
+already on npm. Local packing and installation publish neither project.
+
+Import the served module from `/easi-view/assets/easi-view.js`; use
+`import type { Viewer } from '@xinonix/easi-view'` for TypeScript. In a Vite/React
+mount lifecycle, `import(/* @vite-ignore */ '/easi-view/assets/easi-view.js')`
+keeps the browser URL intact. Give the container a height, await `viewer.ready`,
+and dispose on unmount. Await `whenDisposed()` when verifying completed cleanup.
+
+The copy helper refuses an existing destination. For upgrades use a new versioned
+asset path and update its import. Preserve the whole directory: bundling one JS
+file does not automatically preserve worker/WASM URLs. Direct package imports
+are ESM; any bundler-specific asset rewriting needs its own qualification.
+
+`sdk:pack` verifies source/build fingerprints, asset inventory, runtime exclusion,
+explicit package paths, document allowlist and byte/content limits. It produces
+archive SHA-256, npm integrity and per-file manifests. Original imaging files,
+private reports, environments, credentials, tests and corpus tools stay out of
+the installable SDK. All public fixtures are synthetic.
+
+## CI and publication boundaries
+
+GitHub Actions runs checks on Node.js 22 and 24 for `main`, release branches and
+pull requests. Node.js 24 also creates static and SDK archives retained as workflow
+artifacts. CI does not automatically publish npm, deploy hosting or create a
+public GitHub release. The candidate manifest explicitly permits public
+prerelease publication and defaults to the `next` tag. This is a release configuration, not an automatic
+publishing job. Stable publication is separate and remains gated by the final
+full-corpus qualification.
+
+The local browser harness uses an isolated Chrome profile. Set `EASI_VIEW_BROWSER`
+for another executable. Browser and local-corpus qualification are explicit
+additional gates, separate from the portable numeric/build CI job.

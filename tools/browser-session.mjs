@@ -21,6 +21,7 @@ export async function browserSession(output, extraArguments = []) {
     const errors = [];
     const requests = [];
     const consoleErrors = [];
+    const eventListeners = new Set();
     let sequence = 0;
     const close = () => {
         for (const item of pending.values()) { clearTimeout(item.timeout); item.reject(new Error('Browser QA closed.')); }
@@ -58,6 +59,7 @@ export async function browserSession(output, extraArguments = []) {
             } else if (message.method === 'Runtime.exceptionThrown') errors.push(message.params.exceptionDetails);
             else if (message.method === 'Network.requestWillBeSent') requests.push({ url: message.params.request.url, method: message.params.request.method });
             else if (message.method === 'Runtime.consoleAPICalled' && message.params.type === 'error') consoleErrors.push(message.params.args.map(item => item.value ?? item.description).join(' '));
+            if (message.method) for (const listener of eventListeners) listener(message.method, message.params);
         });
         const evaluate = async expression => {
             const result = await send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
@@ -81,6 +83,9 @@ export async function browserSession(output, extraArguments = []) {
         await send('Runtime.enable');
         await send('Page.enable');
         await send('Network.enable');
-        return { send, evaluate, until, screenshot, errors, requests, consoleErrors, close };
+        // Observe CDP network events without replacing browser-native transports.
+        // Callers must redact credentials before retaining any event details.
+        const onEvent = listener => { eventListeners.add(listener); return () => eventListeners.delete(listener); };
+        return { send, evaluate, until, screenshot, errors, requests, consoleErrors, onEvent, close };
     } catch (error) { close(); throw error; }
 }

@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFile, readdir, stat } from 'node:fs/promises';
 import { resolve, relative } from 'node:path';
 
-/** Fingerprint every owned input used to produce the browser distribution. */
+/** Fingerprint owned inputs and the independently installed EASI JS core. */
 export async function sourceDigest(root) {
     const files = [];
     async function visit(file) {
@@ -11,8 +11,11 @@ export async function sourceDigest(root) {
             for (const name of (await readdir(file)).sort()) await visit(resolve(file, name));
         } else files.push(file);
     }
-    for (const name of ['src', 'public', 'index.html', 'package.json', 'package-lock.json', 'LICENSE', 'NOTICE', 'tools/build.mjs', 'tools/source-digest.mjs', 'tools/dist-manifest.mjs']) {
+    for (const name of ['src', 'public', 'licenses', 'index.html', 'package.json', 'package-lock.json', 'LICENSE', 'NOTICE', 'tools/build.mjs', 'tools/source-digest.mjs', 'tools/dist-manifest.mjs', 'tools/release-profile.mjs']) {
         await visit(resolve(root, name));
+    }
+    for (const name of ['src', 'package.json', 'LICENSE', 'NOTICE', 'licenses']) {
+        await visit(resolve(root, 'node_modules/@xinonix/easi-js', name));
     }
     const hash = createHash('sha256');
     for (const file of files.sort()) {

@@ -3,6 +3,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { resolve, sep, extname } from 'node:path';
 import { watch } from 'node:fs';
 import { spawn } from 'node:child_process';
+import { createOrthancProxy } from './orthanc-proxy.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const directory = resolve(root, 'dist');
@@ -19,7 +20,8 @@ function rebuild() {
 }
 if (!production) await rebuild();
 await stat(resolve(directory, 'index.html'));
-const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.svg': 'image/svg+xml', '.txt': 'text/plain; charset=utf-8' };
+const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.svg': 'image/svg+xml', '.txt': 'text/plain; charset=utf-8', '.wasm': 'application/wasm' };
+const orthancProxy = createOrthancProxy();
 export function requestedPath(requestUrl) {
     let decoded;
     try { decoded = decodeURIComponent(new URL(requestUrl, 'http://localhost').pathname); } catch { return null; }
@@ -32,7 +34,17 @@ const server = createServer(async (request, response) => {
     response.setHeader('Cache-Control', 'no-store');
     response.setHeader('X-Content-Type-Options', 'nosniff');
     response.setHeader('Referrer-Policy', 'no-referrer');
-    response.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self' http: https:; worker-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'");
+    let styleHash;
+    try {
+        styleHash = JSON.parse(await readFile(resolve(directory, 'build-info.json'), 'utf8')).inlineStyleSha256;
+        if (typeof styleHash !== 'string' || !/^[A-Za-z0-9+/]{43}=$/.test(styleHash)) throw new Error('Invalid stylesheet hash.');
+    } catch {
+        response.writeHead(503);
+        response.end('Viewer assets are rebuilding. Refresh shortly.');
+        return;
+    }
+    response.setHeader('Content-Security-Policy', `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'sha256-${styleHash}'; img-src 'self' data: blob:; connect-src 'self' http: https:; worker-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'`);
+    if (await orthancProxy(request, response)) return;
     if (!['GET', 'HEAD'].includes(request.method)) { response.writeHead(405); response.end(); return; }
     if (!target) { response.writeHead(404); response.end(); return; }
     try {
@@ -61,6 +73,7 @@ if (!production) {
         }, 150);
     };
     watchers.push(watch(resolve(root, 'src'), { recursive: true }, changed));
+    watchers.push(watch(resolve(root, 'public'), { recursive: true }, changed));
     watchers.push(watch(resolve(root, 'index.html'), changed));
 }
 for (const event of ['SIGINT', 'SIGTERM']) process.once(event, () => {

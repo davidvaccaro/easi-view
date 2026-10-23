@@ -110,7 +110,10 @@ export function createDicomFixture(options = {}) {
     if (options.padding != null) attributes.set('00280120', [signed ? 'SS' : 'US', options.padding]);
     if (options.paddingLimit != null) attributes.set('00280121', [signed ? 'SS' : 'US', options.paddingLimit]);
     if (frames > 1) {
-        attributes.set('00280009', ['AT', new Uint8Array([0x18, 0, 0x63, 0x10])]);
+        const increment = new Uint8Array(4);
+        const pointer = new DataView(increment.buffer);
+        pointer.setUint16(0, 0x0018, littleEndian); pointer.setUint16(2, 0x1063, littleEndian);
+        attributes.set('00280009', ['AT', increment]);
         attributes.set('00181063', ['DS', options.frameTime ?? 50]);
     }
     for (const [id, value] of Object.entries(options.extraAttributes ?? {})) {
@@ -213,7 +216,10 @@ export function makeDemoFiles(kind = 'ct') {
         description: spec.description, seriesUid: `${uid}.1`, window: spec.window,
         signed: kind === 'ct', bitsAllocated: kind === 'us' ? 8 : 16,
         bitsStored: kind === 'ct' ? 16 : kind === 'us' ? 8 : 12,
-        photometric: kind === 'xr' ? 'MONOCHROME1' : 'MONOCHROME2', pixelSpacing: kind === 'us' ? [0.45, 0.45] : [0.75, 0.75]
+        photometric: kind === 'xr' ? 'MONOCHROME1' : 'MONOCHROME2', pixelSpacing: kind === 'us' ? [0.45, 0.45] : [0.75, 0.75],
+        // These generated spatial stacks share a reference only with themselves.
+        // The CT and MR phantoms represent different synthetic coordinate spaces.
+        extraAttributes: ['ct', 'mr'].includes(kind) ? { '00200052': ['UI', `${uid}.2`] } : {}
     };
     if (kind === 'us') {
         const values = new Int32Array(spec.rows * spec.columns * spec.count);
