@@ -2,7 +2,7 @@ name: EASI View checks and artifact
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'release/**']
   pull_request:
   workflow_dispatch:
 

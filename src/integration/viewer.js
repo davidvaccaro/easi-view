@@ -4,7 +4,7 @@ import { normalizeOptions, themeVariables } from './options.js';
 import { EMBED_STYLE_PREFIX } from './style-prefix.js';
 
 const mounted = new WeakMap();
-const eventTypes = new Set(['sourcechange', 'framechange', 'layoutchange', 'viewportchange', 'syncchange', 'annotationchange', 'annotationselectionchange', 'reconstructionchange', 'derivedchange', 'specialtychange', 'readingprotocolchange', 'librarychange', 'aichange', 'error', 'dispose']);
+const eventTypes = new Set(['sourcechange', 'framechange', 'layoutchange', 'viewportchange', 'syncchange', 'annotationchange', 'annotationselectionchange', 'reconstructionchange', 'derivedchange', 'specialtychange', 'readingprotocolchange', 'librarychange', 'error', 'dispose']);
 
 /** Mount one independently owned viewer without taking over the host application's DOM or CSS. */
 export function createViewer(container, rawOptions = {}) {
@@ -78,7 +78,7 @@ export function createViewer(container, rawOptions = {}) {
     try {
         engine = startApp(root, {
             initialDemo: configuration.initialDemo, keyboardScope: 'viewer', throwRendererErrors: true,
-            sources: configuration.sources ?? [], opening: configuration.opening, ai: configuration.ai,
+            sources: configuration.sources ?? [], opening: configuration.opening,
             onEvent(type, detail) {
                 // Page lifecycle disposal must also release the mounting registration.
                 if (type === 'dispose' && !disposed) releaseMount();
@@ -94,11 +94,6 @@ export function createViewer(container, rawOptions = {}) {
     api = {
         ready: engine.ready,
         open(path) { ensureActive(); return engine.open(path); },
-        openAiAssist() { ensureActive(); return engine.openAiAssist(); },
-        closeAiAssist() { ensureActive(); return engine.closeAiAssist(); },
-        cancelAiAssist() { ensureActive(); return engine.cancelAiAssist(); },
-        getAiState() { return engine.getAiState(); },
-        getAiDraft() { ensureActive(); return engine.getAiDraft(); },
         getOpenWorkflowState() { ensureActive(); return engine.getOpenWorkflowState(); },
         getSessionCatalog() { ensureActive(); return engine.getSessionCatalog(); },
         getSessionState() { ensureActive(); return engine.getSessionState(); },

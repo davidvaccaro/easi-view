@@ -118,11 +118,15 @@ export class ArchiveBrowser {
     disconnect() {
         this.assertActive();
         this.resetQueries();
-        this.client = null;
-        this.disconnectSource();
-        this.el('archive-search-form').hidden = true;
-        this.el('archive-disconnect').hidden = true;
-        this.el('archive-message').textContent = 'Disconnected. Connect an archive to browse its studies.';
+        // Revocation needs the owning client to find and release its displayed
+        // series, retained attributes and pixel resources before forgetting it.
+        try { this.disconnectSource(); }
+        finally {
+            this.client = null;
+            this.el('archive-search-form').hidden = true;
+            this.el('archive-disconnect').hidden = true;
+            this.el('archive-message').textContent = 'Disconnected. Connect an archive to browse its studies.';
+        }
     }
 
     readFilters() {

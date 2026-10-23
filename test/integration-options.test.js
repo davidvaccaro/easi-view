@@ -140,16 +140,13 @@ test('optional host CSP nonce is bounded and preserved without normalization', (
 });
 
 
-test('AI remains absent by default, explicit and secret-free when configured', () => {
-    assert.equal(Object.hasOwn(normalizeOptions(), 'ai'), false);
-    assert.equal(normalizeOptions({ai: false}).ai.enabled, false);
-    assert.equal(normalizeOptions({ai: {}}).ai.configured, false);
-    const options = normalizeOptions({ai: {baseUrl: 'https://gateway.example/api/ai', label: 'Technical assistant', credentials: 'same-origin'}});
-    assert.equal(options.ai.enabled, true); assert.equal(options.ai.configured, true);
-    assert.equal(options.ai.baseUrl, 'https://gateway.example/api/ai');
-    assert.deepEqual(normalizeOptions(options), options);
-    for (const ai of [{apiKey: 'provider-secret'}, {baseUrl: 'http://external.example'}, {baseUrl: 'https://example.com/?key=secret'}, {pixels: true}]) assert.throws(() => normalizeOptions({ai}));
+test('the initial release rejects AI configuration instead of accepting a disabled hidden feature', () => {
+    for (const ai of [false, true, {}, {enabled: true}, {baseUrl: 'https://gateway.example/api/ai'}]) {
+        assert.throws(() => normalizeOptions({ai}), /unknown option: ai/);
+    }
     let getterCalled = false;
-    const ai = Object.defineProperty({}, 'baseUrl', {enumerable:true, get() {getterCalled = true; return 'https://example.com';}});
-    assert.throws(() => normalizeOptions({ai})); assert.equal(getterCalled, false);
+    const options = Object.defineProperty({}, 'ai', {enumerable: true, get() {getterCalled = true; return {};}});
+    assert.throws(() => normalizeOptions(options), /unknown option: ai/);
+    assert.equal(getterCalled, false);
+    assert.equal(Object.hasOwn(normalizeOptions(), 'ai'), false);
 });

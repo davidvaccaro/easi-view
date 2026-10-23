@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 import { sourceDigest } from './source-digest.mjs';
 import { distInventory } from './dist-manifest.mjs';
 import { EMBED_STYLE_PREFIX } from '../src/integration/style-prefix.js';
+import { RELEASE_PROFILE, releaseModules } from './release-profile.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const out = resolve(root, 'dist');
@@ -47,6 +48,7 @@ const sdk = await build({
     loader: { '.css': 'text' },
     legalComments: 'linked'
 });
+const bundledModules = releaseModules(result.metafile, sdk.metafile);
 await cp(resolve(root, 'node_modules/dcmjs-codecs/build/dcmjs-native-codecs.wasm'), resolve(out, 'assets/dicom-codecs.wasm'));
 await cp(resolve(root, 'src/integration/easi-view.d.ts'), resolve(out, 'assets/easi-view.d.ts'));
 await cp(resolve(root, 'index.html'), resolve(out, 'index.html'));
@@ -62,7 +64,7 @@ await cp(resolve(root, 'node_modules/dcmjs-codecs/LICENSE.txt'), resolve(out, 'l
 await cp(resolve(root, 'licenses/codecs'), resolve(out, 'licenses/codecs'), { recursive: true });
 if (await sourceDigest(root) !== inputs) throw new Error('Build inputs changed while bundling. Rebuild once the source changes are saved.');
 await writeFile(resolve(out, 'build-info.json'), JSON.stringify({
-    project: 'EASI View', version: packageInfo.version,
+    project: 'EASI View', version: packageInfo.version, releaseProfile: RELEASE_PROFILE, bundledModules,
     easiJsVersion: easiJsPackage.version, renderer: 'owned WebGL2 / Canvas2D reference', sourceDigest: inputs,
     inlineStyleSha256,
     files: await distInventory(out),

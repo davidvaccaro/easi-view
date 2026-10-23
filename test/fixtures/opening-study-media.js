@@ -3,7 +3,7 @@ import {createDicomdirFixture} from '../dicomdir-fixtures.js';
 
 /** Invented removable media for paged study selection and cancellable indexing.
  * Its pixels, identities, dates and files are authored independently here. */
-export function createRequestFlowMedia({studies = 30, secondPatient = true, instancesPerStudy = 1, malformed = false} = {}) {
+export function createOpeningStudyMedia({studies = 30, secondPatient = true, instancesPerStudy = 1, malformed = false} = {}) {
     if(!Number.isSafeInteger(studies)||studies<1||studies>100||!Number.isSafeInteger(instancesPerStudy)||instancesPerStudy<1||instancesPerStudy>20)throw new TypeError('Use bounded generated media.');
     const base='2.25.2026102202',files=[],records=[];
     for(const [patientIndex,studyCount]of[studies,...(secondPatient?[2]:[])].entries()){

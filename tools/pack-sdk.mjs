@@ -4,6 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { sourceDigest } from './source-digest.mjs';
 import './check-dist.mjs';
+import { RELEASE_DOCUMENTS } from './release-profile.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const target = resolve(root, 'artifacts/releases');
@@ -25,6 +26,7 @@ try {
     for (const path of paths) {
         if (!/^(?:dist\/|docs\/|licenses\/|examples\/dimse-gateway\/(?:gateway\.mjs|server\.mjs|README\.md)$|tools\/copy-assets\.mjs$|package\.json$|README\.md$|LICENSE$|NOTICE$|CHANGELOG\.md$)/.test(path) ||
             path.split('/').some(name => name.startsWith('.env') || name === '..') || /\.(dcm|dicom)$/i.test(path)) throw new Error('The SDK archive includes an unintended repository file.');
+        if (path.startsWith('docs/') && !RELEASE_DOCUMENTS.includes(path.slice(5))) throw new Error('The SDK archive includes an unintended release document.');
         const bytes = await readFile(resolve(root, path)); total += bytes.length;
         if (bytes.length > 16 * 1024 * 1024 || total > 32 * 1024 * 1024 || bytes.length >= 132 && bytes.subarray(128, 132).toString() === 'DICM') throw new Error('The SDK archive includes an unsupported asset or exceeds its byte limit.');
     }

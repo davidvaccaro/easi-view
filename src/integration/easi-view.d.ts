@@ -13,42 +13,6 @@ export interface ViewerOptions {
     /** Configured repositories. Registration makes no network request. */
     sources?: RemoteSourceConfiguration[];
     opening?: OpeningPolicy;
-    /** Optional, explicit-send technical assistance. Provider credentials belong on a server. */
-    ai?: false | AiConfiguration;
-}
-export interface AiConfiguration {
-    /** Enables reviewed workflow tasks and optional voice input on a capable gateway. */
-    workflows?: boolean;
-    /** Local display policy. Never sent to the model; does not establish clinical superiority. */
-    workflowPreferences?: { routineCt: 'no-preference' | 'blended' };
-    enabled?: boolean;
-    /** HTTPS gateway, or loopback HTTP in development. Omit to show setup guidance. */
-    baseUrl?: string;
-    /** Optional HTTPS/loopback login page on the gateway origin. Opens in another tab. */
-    signInUrl?: string;
-    label?: string; recipient?: string; model?: string;
-    /** Short-lived gateway authentication only; never a model provider API key. */
-    getHeaders?: (options: {signal: AbortSignal}) => HeadersInit | Promise<HeadersInit>;
-    credentials?: 'omit' | 'same-origin';
-    timeoutMs?: number;
-}
-export interface AiState {
-    workflowPhase?: 'idle' | 'transcribing' | 'planning' | 'reviewing' | 'review' | 'running' | 'undoing' | 'complete' | 'cancelled' | 'error';
-    /** New tasks keep imported studies and measurements; current-view tasks extend the actual displayed panes. */
-    workflowMode?: 'fresh' | 'continue';
-    plannedActionCount?: number; pendingChoiceCount?: number; canUndoTask?: boolean; recording?: boolean;
-    enabled: boolean; configured: boolean; open: boolean;
-    phase: 'idle' | 'ready' | 'generating' | 'testing' | 'complete' | 'error' | 'cancelled';
-    busy: boolean; factCount: number; selectedMeasurementCount: number; hasDraft: boolean;
-    errorCode: string | null;
-}
-/** Explicitly requested transient model text and facts; never included in automatic events. */
-export interface AiDraft {
-    text: string;
-    facts: {id: string; code: string; value: number | string; unit?: string; group?: string}[];
-    evidenceIds: string[]; unknownEvidenceIds: string[];
-    numericWarnings: {token: string; reason: string}[];
-    model?: string;
 }
 export interface OpeningPolicy { localImages?: boolean; localStudies?: boolean; remoteStudies?: boolean; tests?: boolean; sourceEditing?: boolean }
 export type SourceSearchField = 'patientId' | 'patientName' | 'patientBirthDate' | 'issuerOfPatientId' | 'accessionNumber' | 'studyDate' | 'modality';
@@ -321,7 +285,6 @@ export interface ViewerState {
     frameIndex: number; frameCount: number; modality: string | null; playing: boolean;
     archive: { connected: boolean; searching: boolean };
     localLibrary: LocalLibraryState;
-    ai: AiState | null;
     image: { rows: number; columns: number; photometric: string; samplesPerPixel: number; calibrated: boolean; geometryWarnings: string[]; timingWarnings: string[]; encodingWarnings: string[] } | null;
     window: Window | null; workspace: WorkspaceState; annotations: AnnotationState; reconstruction: ReconstructionState | null; derived: DerivedState; specialty: SpecialtyState; readingProtocol: ReadingProtocolState;
 }
@@ -336,7 +299,6 @@ export interface PerformanceSnapshot {
     resources: { disposed: boolean; seriesCount: number; frameCount: number; encodedBytes: number; decodedCacheBytes: number; workerCount: number; viewportCount: number; encodedCacheBytes: number; thumbnailBytes: number; specialtyBytes: number; overlayBytes: number; overlayRenderBytes: number; reconstructionVolumeBytes: number; reconstructionDerivedBytes: number; cleanupPending: boolean };
 }
 export interface ViewerEvents {
-    aichange: AiState;
     sourcechange: ViewerState;
     framechange: ViewerState & { viewport: number };
     layoutchange: ViewerState;
@@ -355,11 +317,6 @@ export interface ViewerEvents {
 export interface Viewer {
     readonly ready: Promise<ViewerState | undefined>;
     open(path?: 'images' | 'study' | 'test'): OpenWorkflowState;
-    openAiAssist(): boolean;
-    closeAiAssist(): void;
-    cancelAiAssist(): void;
-    getAiState(): AiState;
-    getAiDraft(): AiDraft | null;
     getOpenWorkflowState(): OpenWorkflowState;
     getSessionCatalog(): SessionCatalogView;
     getSessionState(): SessionState;

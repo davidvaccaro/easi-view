@@ -28,8 +28,19 @@ test('installable SDK includes adjacent runtime assets and rejects unintended re
         for (const path of ['dist/assets/easi-view.js', 'dist/assets/easi-view.d.ts', 'dist/assets/decode-worker.js', 'dist/assets/dicom-codecs.wasm', 'dist/build-info.json', 'tools/copy-assets.mjs', 'examples/dimse-gateway/gateway.mjs', 'examples/dimse-gateway/server.mjs', 'examples/dimse-gateway/README.md', 'LICENSE', 'NOTICE', 'README.md']) {
             assert.ok(listing.stdout.split('\n').includes(`package/${path}`), path);
         }
+        for (const path of ['docs/AI_ASSIST.md', 'docs/AI_WORKFLOWS.md', 'dist/viewer-config.json']) {
+            assert.equal(listing.stdout.split('\n').includes(`package/${path}`), false, path);
+        }
+        const releaseInfo = JSON.parse(await readFile(resolve(root, 'dist/build-info.json'), 'utf8'));
+        assert.equal(releaseInfo.releaseProfile, 'core-no-ai');
+        assert.equal(releaseInfo.bundledModules.some(path => path.startsWith('src/ai/')), false);
+        const types = await readFile(resolve(root, 'dist/assets/easi-view.d.ts'), 'utf8');
+        assert.doesNotMatch(types, /AiConfiguration|AiState|AiDraft|openAiAssist|aichange/);
+        assert.match(types, /importDerived\(/, 'DICOM derived-result import remains available.');
+        assert.match(types, /addOverlay\(/, 'Explicit host-supplied overlays remain available.');
         assert.equal(pkg.exports['.'].types, './dist/assets/easi-view.d.ts');
-        assert.equal(pkg.private, true, 'Local packing must not enable registry publication.');
+        assert.equal(pkg.publishConfig.access, 'public');
+        assert.equal(pkg.publishConfig.tag, pkg.version.includes('-') ? 'next' : 'latest', 'Prerelease artifacts must not default to the stable npm tag.');
         const { copyViewerAssets } = await import(pathToFileURL(resolve(root, 'tools/copy-assets.mjs')).href);
         const destination = resolve(root, 'consumer/public/viewer');
         await copyViewerAssets(destination);
@@ -64,6 +75,10 @@ test('installable SDK includes adjacent runtime assets and rejects unintended re
             assert.equal(await readFile(marker, 'utf8'), 'Keep the existing destination intact.');
             for (const path of copiedFiles) assert.deepEqual(await readFile(resolve(target, path)), await readFile(resolve(root, 'dist', path)));
         });
+        await writeFile(resolve(root, 'docs/AI_ASSIST.md'), '# Generated historical-only guide marker.\n');
+        result = run('pack-sdk.mjs'); assert.notEqual(result.status, 0); assert.match(result.stderr, /unintended release document/);
+        await assert.rejects(stat(archive), { code: 'ENOENT' });
+        await rm(resolve(root, 'docs/AI_ASSIST.md'));
         await writeFile(resolve(root, 'fixture-only.txt'), 'Generated harmless test marker.');
         pkg.files.push('fixture-only.txt'); await writeFile(resolve(root, 'package.json'), JSON.stringify(pkg));
         result = run('build.mjs'); assert.equal(result.status, 0, result.stderr);

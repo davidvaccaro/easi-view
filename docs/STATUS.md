@@ -1,236 +1,54 @@
 # Supported profile and validation status
 
-Version **0.1.0-alpha.0** provides a research viewer and typed, independently
-installable SDK. Established profiles have numeric, runtime and browser
-verification. The corpus-hardening additions below have generated, Node and
-selected browser qualification. The completed full campaign and subsequent
-sampled-projection follow-up retain separate build fingerprints and evidence.
-Registry publication, broader native-device/production-network
-validation and broader advanced/specialty profiles remain separate release gates.
+Version **1.0.0-rc.1** prepares an AI-free initial release using the independent
+**EASI JS 1.0.1** core. AI controls, configuration, public SDK endpoints, provider
+adapters and voice workflows are removed from the release line. The accomplished
+experimental work and its exact preservation commit remain in [AI_BACKLOG.md](AI_BACKLOG.md).
+DICOM SEG/SR/GSPS and explicit supplied overlays are ordinary derived-result
+features and remain supported within their existing profiles.
 
-## Opening progress and request starting points — 2026-10-22
+## AI-free candidate qualification — 2026-10-22
 
-The current increment adds visible cancellable progress during indexing, remote
-queries and final admission; local Select all covers the chosen patient’s full
-available study preview, while remote Select all remains current-page only.
-AI Tasks defaults to New task from study, with clean-pane preparation only after
-review and Run. Continue current view uses actual pane state rather than saved
-conversation history. New request clears AI inputs/review without clearing
-imported data or a valid Undo. Mode changes invalidate review without inference
-or viewer mutation, and mode is bound to the execution snapshot. Optional bounded
-wire mode retains compatibility with legacy command requests. Expanded local
-review is limited to 16 visible steps. A one-pane continuation carries forward
-the previously active image, frame, window and camera, instead of substituting
-the old pane A source. Build `42d84d54…` passed **2,573 automated tests**, production
-build/distribution checks and **14 native-browser checks**, covering opening
-progress/selection, request modes, generated voice/busy controls, stale Fresh
-rejection, bounded provider-error recovery, privacy and same-source automatic
-window restoration after Undo. The deterministic gate made ten planning requests
-and one generated-tone transcription, with zero genuine model calls. The earlier
-`fb290f4a…` 13-check receipt remains historical. A separate hosted gate on this
-fixed build passed **9 checks with 3 genuine OpenAI planning requests**, covering
-window-only continuation with automatic-window Undo, active-pane retention when
-collapsing the layout, and New request/fresh setup without reimporting. It used
-generated studies, native fetch and real sign-in, with zero retries, image
-uploads, captures or browser errors. Its earlier two-request attempt exposed the
-Undo defect and remains a partial historical result. Genuine audio was not
-retested for this increment.
-See [browser qualification](BROWSER_VALIDATION.md).
+Source fingerprint
+`c335d229eedd333db5afac0f29534a1e93044e68799590b26e6c6c88a3d510ab`
+passed `npm run check`: **2,163 automated tests**, **zero skipped**, production
+bundling and the AI-free distribution/module-inventory guards. The independently
+published EASI JS 1.0.1 core previously passed **1,466 tests** and its registry
+archive was matched to the tested core artifact.
 
-## AI Assist scope
+The final viewer passed **99 native-browser checks**: standalone opening 9,
+session navigation 21, annotations 18, workspace 15, inspector 25 and embedding 11.
+A separate independent consumer passed **9 actual Chrome SDK checks**, six Node
+export checks, strict TypeScript 5.3.3 compilation, direct and `npx` copying of all
+46 runtime files, exact 64-sample JPEG-LS decoding, 0.75 mm calibration and disposal.
+Qualification includes no assistant API/UI/configuration or inference requests.
+The receipts qualify this software profile, not clinical interpretation or
+representative production-device/archive performance.
 
-Conceptual viewing assistance is qualified on build `11159ac2…` with **2,538
-automated tests**, **15 generated native-browser checks**, and **9 private
-original-study checks**, plus **12 hosted browser checks covering all ten tasks
-with ten genuine OpenAI planning requests using synthetic data**. It adds local
-reconstruction/energy/thickness/kernel
-selection, disclosed host CT reading preferences and first/middle/last positions.
-General source sharing works across all conceptual multi-pane requests. It
-prepares viewing sessions and manual tools, without pixel interpretation or
-automatic anatomical measurements. Qualification for this increment is recorded
-separately in BROWSER_VALIDATION.md; earlier receipts retain their original builds.
+Release qualification exposed and fixed two pre-existing defects: disconnecting
+an archive now clears its owned remote pane/pixels and Attributes before the
+client binding is released; the embedded example handles `sourcechange` as well
+as `framechange`, so its first displayed image replaces the preparing status.
+The final counts above are on the fixed fingerprint, not copied from its earlier
+2,156-test predecessor. See [BROWSER_VALIDATION.md](BROWSER_VALIDATION.md).
 
-
-Current-study paired CT discovery is verified on build `79a4872…`: **2,494
-automated tests**, **8 generated native-browser checks**, **10 private local
-CT checks**, and **5 hosted browser checks using one genuine OpenAI planning
-request with generated data**. No series-card navigation is required. The exact current study and
-recorded reconstruction metadata determine eligibility, while genuine ties
-produce one shared in-assistant choice for both panes. See
-[BROWSER_VALIDATION.md](BROWSER_VALIDATION.md#current-study-ct-series-discovery--2026-10-21).
-
-AI hosts may expose an explicit same-origin `ai.signInUrl`. The invited demo
-shows **Sign in to AI** before and after session expiry. It opens a separate tab;
-expired task/audio/draft/connection requests give recovery guidance while the
-original viewer retains its local images and command. No refresh, automatic
-redirect or automatic paid retry is required. Build `c96dc751…` passed 2,469
-automated tests and five native-browser expiry/sign-in/retry checks; see
-[BROWSER_VALIDATION.md](BROWSER_VALIDATION.md#ai-session-recovery--2026-10-21).
-
-[AI Assist (Preview)](AI_ASSIST.md) offers two host-configured paths:
-
-- **Tasks:** explicitly plan a typed command or transcribe a short recording,
-  review a closed action plan, choose ambiguous series locally, and Run task.
-  Supported steps arrange panes, select series/stacks, apply calibrated CT
-  presets, request compatible links, control frames/cine, activate existing
-  tools or return to an existing measurement. Cancel, partial rollback and a
-  guarded Undo preserve the viewing session.
-- **Explain:** explain selected technical facts or summarize selected existing
-  measurements. Exact bounded facts are reviewed before Generate, and streamed
-  drafts remain unverified and bound to their source evidence.
-
-AI defaults off. Hosts separately opt into Tasks with `ai.workflows: true`.
-The reference OpenAI gateway uses `gpt-6.1-sol` for planning and `gpt-transcribe`
-for optional speech. Commands and sent audio leave the device; the local catalog,
-source identifiers, raw DICOM and pixels are not automatically attached. Typed or
-spoken identifiers can still occur in a user's own command and are not
-redacted automatically. Source selection and viewer actions execute locally only
-after review; recorded contrast-agent information does not establish enhancement
-or an acquisition phase. See [AI_WORKFLOWS.md](AI_WORKFLOWS.md).
-
-The [AI implementation backlog](AI_BACKLOG.md) retains the wider target.
-Anatomy localization, automatic anatomical measurements, image
-interpretation/segmentation inference, registration, browser model execution,
-a third-party plugin runtime, catalogs and marketplace are **not implemented**
-by this slice. Existing patient-geometry checks determine which links can work;
-the assistant does not align unrelated examinations. The viewer remains a
-research alpha. New workflow/audio qualification and historical explanation
-qualification are separate evidence paths in [BROWSER_VALIDATION.md](BROWSER_VALIDATION.md).
-
-### Reviewed viewer tasks — 2026-10-21
-
-The implementation adds strict command/plan/audio contracts, explicit host
-opt-in, local catalog grounding and distinct choices for known image stacks.
-Missing contrast metadata stays unknown even when a description says “with
-contrast.” Original MRI post-agent candidates remain ambiguous; derived series
-and localizers are excluded from general searches unless explicitly requested
-by series number. Latest/prior ties remain choices, not arbitrary first matches.
-Frame commands are one-based and default to the captured active pane when no
-pane is stated. CT presets require calibrated HU monochrome values.
-
-For paired lung/soft-tissue CT windows, the viewer resolves “this CT” against
-the current study's metadata without requiring a series-card selection first.
-One qualifying axial stack can resolve automatically; multiple ordinary
-reconstructions produce one shared choice inside AI Assist for both panes.
-Explicitly requested displayed stacks and exact series numbers remain deliberate
-selections. If current-study context is missing, matching stays within the active
-patient's admitted studies: one unambiguous candidate can resolve, while multiple
-candidates require a choice. There is no silent first-study or cross-patient
-fallback.
-
-Bounded Image Type evidence distinguishes axial images from explicit reformats,
-projections, virtual unenhanced reconstructions and material maps. General paired
-CT searches exclude these specialized profiles, localizers and derived series;
-exact requests remain possible subject to image/calibration validation. ORIGINAL
-alone does not rule out virtual unenhanced processing. Series descriptions do
-not establish reconstruction class, and no energy preference or clinical
-superiority is inferred. Conflicting instance evidence remains unknown.
-Unknown derivation remains unknown rather than becoming an ORIGINAL claim; it
-can remain eligible when the other criteria match, subject to supported geometry
-and HU calibration checks when opened.
-
-Cancellation stops owned work. A failed partial task restores its prior view
-when the same patient workspace is still current; user interruptions or patient
-changes prevent restoration over a newer workspace. Undo applies to the most
-recent completed task only while its resulting view remains unchanged. Requests
-and recordings have bounded lifetimes; no background microphone or automatic
-AI invocation on study opening is introduced. Tests distinguish deterministic
-fixtures, actual UI interaction and genuine provider calls; historical checks
-below do not by themselves qualify the newer task/audio paths.
-
-### Workflow qualification — 2026-10-21
-
-Build `62381d8915839b7d17a7e1f45503c75a7afe0324eb2b71a20e08c0b4b5746ba1`
-passed **2,460 automated tests**, production build and distribution checks.
-The actual standalone generated workflow gate passed **12 checks**, preserving
-native fetch and using CDP request observation. It covered reviewed CT windows
-with distinct rendered pixels, guarded Undo after dialog reopening, ambiguous
-MRI choices, missing-contrast refusal, cancellation/stale snapshots, exact
-one-based cine navigation and microphone permission/capture cleanup. The local
-planner/transcriber was deterministic; these checks made no genuine AI call.
-
-A separate private local CT/MRI follow-up passed **5 checks** against the same
-build using original files through the File API and a deterministic local
-planner. It confirmed actual import/render/choice behavior without uploading
-originals or saving clinical identifiers, study paths/dates or screenshots.
-
-The final hosted native-browser run passed **6 checks** with **three genuine
-HTTP 200 calls**: CT planning, generated-speech transcription and reviewed voice
-planning. Distinct CT windows/Undo and the recorded-command → editable transcript
-→ Plan → Run path to ultrasound image 40 passed. The earlier silent simulated
-capture is retained as a failed test attempt; the corrected isolated-browser
-fixture leaves production capture unchanged. See
-[BROWSER_VALIDATION.md](BROWSER_VALIDATION.md#reviewed-ai-workflows--2026-10-21)
-for separate receipts, reproduction commands and the explicit `--live-voice`
-provider-call boundary. These results do not establish clinical accuracy or
-anatomical inference support.
-
-### Standalone AI transport corrected — 2026-10-21
-
-Build `9f83f631ac090337099bd4eacb21d6e35b69708de3fe0aa15c8db49442c3d96b`
-passed **2,305 automated tests** and production build/distribution checks.
-The default AI transport now invokes native fetch without assigning the AI
-client as its receiver. Two focused regressions cover Test and Generate.
-
-The actual standalone local demonstration passed **5 browser checks** with
-native fetch unchanged: a fresh unauthorized Test reaches HTTP `401` and shows
-sign-in guidance, the real invitation form establishes access, Open Images
-imports/displays a generated extensionless DICOM, and the actual header/Test
-control succeeds with exactly **one genuine OpenAI synthetic connection call**.
-The request contains no displayed-image facts. CDP observation recorded no
-unexpected uploads, external browser requests, runtime exceptions or console
-errors. Credentials, original files and model prose were not saved.
-
-The same build also passed **5 actual standalone checks on the invited HTTPS
-deployment**, with one genuine empty-facts connection call and the same native
-transport/privacy assertions. Hosted and local receipts remain separate.
-
-The earlier SDK browser gates below captured requests by wrapping fetch, which
-masked this native-receiver failure. They remain evidence for their declared
-SDK integration paths, rather than qualification of the unmodified standalone
-transport. See [BROWSER_VALIDATION.md](BROWSER_VALIDATION.md) for the new gate.
-
-### OpenAI activated and qualified — 2026-10-21
-
-The source-checkout server now includes a text-only OpenAI Responses adapter
-for `gpt-6.1-sol`, with low reasoning and `store: false`, using the same bounded
-selected-fact wire contract. The key is supplied privately to the local server
-or retrieved from an approved AWS Secrets Manager ARN. New controlled errors
-distinguish sign-in, provider, gateway and timeout failures. See
-[AI_ASSIST.md](AI_ASSIST.md#server-side-openai-option).
-
-Build `cbed0d1a6c491198349cf9936227b658137d11ec6c2199a4f487678bfe6da6b2`
-passed **2,303 automated tests**, production build/distribution checks and the
-focused **12 generated SDK browser checks**. The reference gateway additionally
-requires the expected model through the SDK-owned `X-Easi-Ai-Model` equality
-header; HTTP `409` makes a stale profile refresh/sign in again. This is an
-expected-model guard, never client-selected model routing.
-
-The invited HTTPS demonstration is now activated with **OpenAI `gpt-6.1-sol`**.
-The final public browser gate passed **4 checks**, making exactly **3 genuine
-OpenAI calls** with generated inputs: connection, series explanation and one
-selected calibrated-measurement summary. All requests matched their reviewed
-facts and expected-model guard; response model provenance was verified.
-
-The series explanation had **one numeric-review warning** and the measurement
-summary had **zero**; both had **zero unknown evidence references**. The warning
-is retained for review, and prose remains an unverified draft. This verifies
-integration, not general factual/clinical accuracy. No original medical inputs,
-credentials, model text or screenshots were saved; the browser contacted only
-the configured demonstration origin and released owned resources. Historical
-Bedrock results below remain tied to their original build/provider.
-See [BROWSER_VALIDATION.md](BROWSER_VALIDATION.md) for the separate receipt.
+The new-build **23,893-file full-corpus campaign is running** with all-frame
+coverage for successful supported sessions. Its outcome is pending and remains
+a **stable 1.0.0 gate**. The public candidate targets npm `next`; final registry,
+GitHub release and hosting proof are separate publication records. Historical
+results below retain their original fingerprints rather than becoming new-build
+passes. See [RELEASE_PLAN.md](RELEASE_PLAN.md).
 
 ## Implemented
 
 | Area | Current behavior |
 | --- | --- |
 | Sources | Browser File/Blob, selected local files/folders, DICOMDIR media, configured independent DICOMweb sources and DIMSE HTTP gateway sources; legacy host HTTP(S) reads |
-| Opening/session navigation | Staged Images/Study/Test opening with a dimmed, inactive content area and cancellable progress overlay during final admission, patient-first remote search and checked study admission, direct series/instance cards and pane drag/drop, accurate assignment badges, primary Open/Close menu and bounded patient view/measurement restoration; see [OPENING.md](OPENING.md) |
+| Opening/session navigation | Staged Images/Study/Test opening with a dimmed, inactive content area and cancellable progress overlay during indexing, queries and final admission, patient-first remote search and checked study admission, direct series/instance cards and pane drag/drop, accurate assignment badges, primary Open/Close menu and bounded patient view/measurement restoration; see [OPENING.md](OPENING.md) |
 | Local patient library | Bounded metadata-first additive imports, patient search/timeline, matching-local-record suggestions with confirmed study combination, stable image references, explicit comparison and session-only measurement isolation; see [LOCAL_LIBRARY.md](LOCAL_LIBRARY.md) |
 | Local image retention | Bounded recent-series cache with selected groups protected, inactive groups released after successful display, and on-demand reopening from original local files; full catalog and measurements survive eviction |
 | Local media | DICOMDIR-aware selected-folder import, referenced-file resolution and metadata consistency checks; malformed optional descriptions are omitted with a notice; studies enter the local timeline with series pixels loaded on demand |
-| Parsing | Independent EASI JS 1.0.1-corpus.0 candidate DICOM/JSON pipelines, including CP-246 undefined-length UN sequences; native instance validation remains authoritative |
+| Parsing | Independent EASI JS 1.0.1 DICOM/JSON pipelines, including CP-246 undefined-length UN sequences; native instance validation remains authoritative |
 | Archive navigation | Paged QIDO study/series search, metadata-first stacks, additive study comparison, bounded earlier-study candidates and derived thumbnails without extra retrieval |
 | Archive authentication | In-memory host header object/async callback and explicit browser credentials mode; host owns sign-in |
 | Native syntax | Implicit VR Little Endian, Explicit VR Little Endian, Explicit VR Big Endian |
@@ -254,38 +72,12 @@ See [BROWSER_VALIDATION.md](BROWSER_VALIDATION.md) for the separate receipt.
 | Workspace | 1/2/4 panes, active-pane series assignment, geometry-checked slice/physical-view links, compatible window links, independent cancellation and one aggregate decoded budget; see [WORKSPACE.md](WORKSPACE.md) |
 | Reading layouts | Defined metadata-only CT dual-window, distinct MR sequence and explicit current/prior presets; deterministic ambiguity, eligible overrides and selected-frame pane transactions; see [READING_PROTOCOLS.md](READING_PROTOCOLS.md) |
 | Reconstruction | Explicit LPS MPR/oblique/slab, bounded CPU parallel rays and supplied rigid fusion; Float64 modality values, unchanged originals, 128 MiB combined volume and 8 MiB derived budget; see [RECONSTRUCTION.md](RECONSTRUCTION.md) |
-| AI Assist (Preview) | Opt-in reviewed voice/text viewer tasks with local series choices, bounded actions, Cancel/guarded Undo; existing exact-fact explanations and selected-measurement drafts retained; no automatic catalog/pixel transfer or browser-held provider key; see [AI_WORKFLOWS.md](AI_WORKFLOWS.md) and [AI_ASSIST.md](AI_ASSIST.md) |
-| Derived objects | Exact-grid native binary/fractional SEG, AI masks/probabilities, coded reported SR and explicit pane-scoped restricted GSPS; JSON results; see [DERIVED_OBJECTS.md](DERIVED_OBJECTS.md) |
+| Derived objects | Exact-grid native binary/fractional SEG, supplied masks/probabilities, coded reported SR and explicit pane-scoped restricted GSPS; JSON results; see [DERIVED_OBJECTS.md](DERIVED_OBJECTS.md) |
 | Enterprise integration | Host identity/refresh, bounded worklists, reference-only persistence, backend-verified sharing, fixed-client transactional contexts and protected-data revocation; see [ENTERPRISE.md](ENTERPRISE.md) |
 | Specialty research | Native PHYSICAL RT Dose and zero-shift classic AVG_SUB previews; declared cine timeline, breast CC/MLO manifest and WSI TILED_FULL metadata index; see [SPECIALTIES.md](SPECIALTIES.md) |
 | Host integration | Browser ESM SDK, Shadow DOM style isolation, viewer-scoped keyboard shortcuts, name/logo/color/chrome configuration, host controls/events and disposal/remount |
 | Demos | Generated CT 16-image stack, MR 12-image stack, XR projection image, US 24-frame cine |
 | Local corpus checks | Explicit repository-only Chrome File API harness; complete parse, actual frame draws/commits, modality-aware tools/cine and awaited cleanup; private reports in ignored artifacts; see [CORPUS_TESTING.md](CORPUS_TESTING.md) |
-
-### AI Assist Preview — 2026-10-20
-
-Build `739fbfdff100ae3226ea193003bc7a7401622c422b5d704b8d4af0242c2f16d5`
-passed **2,239 automated tests**, production bundling and distribution validation.
-The focused generated browser gate passed **12 checks** covering no automatic
-send, exact reviewed request bodies, identifier/free-text/pixel exclusion,
-streamed literal text, captured-frame navigation, selected calibrated
-measurements, numeric/evidence flags, cancellation, 390px/Escape interaction,
-source invalidation, independent embeds, disabled AI and complete cleanup.
-Nine focused source-binding/queued-request cases cover frame insertion/reordering,
-removal, duplicate identities and original-frame lookup. Captured evidence resolves
-by immutable frame identity; the decoded frame is checked again before viewport
-admission, including when a stack changes after a queued request starts.
-
-A separate authenticated browser run against the deployed HTTPS demonstration
-made exactly **3 genuine Amazon Bedrock Nova Micro calls** with generated inputs:
-a synthetic connection test, series explanation and one selected measurement summary. Its **4 checks** passed;
-actual model provenance, exact request preview, retained viewer-calculated units
-and zero unknown/numeric flags on those two drafts were verified. This is an
-integration check, not evidence of general model accuracy or clinical validity.
-No original imaging files, credentials or model text were written to receipts.
-The browser contacted only the configured CloudFront demonstration origin; the
-server performed genuine remote inference through Bedrock. Workers and tracked
-retained buffers were zero after cleanup. See [BROWSER_VALIDATION.md](BROWSER_VALIDATION.md).
 
 ### Compact current-image notices — 2026-10-19
 
@@ -459,8 +251,8 @@ The P1 embedding and first archive foundations are implemented. Repeated
 live-archive compatibility and production performance gates remain open, alongside
 broader imaging and deployment profiles. The SDK starts empty by default and shares
 the standalone viewer's supported profile and limits. See [EMBEDDING.md](EMBEDDING.md)
-and the local `embed.html` example. It ships in private static and locally installable npm alpha artifacts.
-It has not been published to an npm registry. See [DICOMWEB.md](DICOMWEB.md) for archive setup,
+and the local `embed.html` example. It has static and locally installable release-candidate archives. Viewer npm
+publication is pending. See [DICOMWEB.md](DICOMWEB.md) for archive setup,
 host-managed authentication and paging.
 
 ## Explicit limits
@@ -615,9 +407,9 @@ spatial linking and reconstruction remain ineligible.
 - Automatic prior identity matching/registration, DICOM Hanging Protocol Storage interchange and broader clinical hanging workflows, perspective/unbounded reconstruction, broader SEG/SR/GSPS profiles,
   broader enterprise/specialty workflows and production gateway deployment.
 
-The alpha reports these limits instead of silently displaying an approximate
+The viewer reports these limits instead of silently displaying an approximate
 image. A static browser cannot directly open a DIMSE TCP association; a separately
-configured gateway remains future integration work.
+configured HTTP gateway is required for the supported DIMSE repository adapter.
 
 ## Verification
 
@@ -858,8 +650,9 @@ Private baseline reports remain in `artifacts/local-corpus/test-library/` and th
 compact comparison in `artifacts/local-corpus/hardening-summary/`. The comparison
 labels partial/sampled retests, preserves unresolved outcomes and rejects input
 drift. Former baseline passes remain unretested until the candidate checks them.
-The local `1.0.1-corpus.0` core/SDK artifact setup is described in
-[ARTIFACTS.md](ARTIFACTS.md); no npm release has been performed.
+That historical campaign used the local `1.0.1-corpus.0` candidate. The current
+independent 1.0.1 core and viewer release preparation are described in
+[ARTIFACTS.md](ARTIFACTS.md); the campaign must be repeated for the release build.
 
 ### Collapsible attribute hierarchy
 

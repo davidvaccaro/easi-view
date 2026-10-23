@@ -1,477 +1,62 @@
 # Browser qualification and sustained-session checks
 
-## Opening progress and AI request starting points — 2026-10-22
-
-Build `42d84d54783a68b2a2f2f5f2f56248a1631827823f8eee67e1b3fcc9a9e3ca14`
-passed `npm run check`: **2,573 tests**, production bundling and distributable
-validation. `node tools/browser-request-flow-check.mjs` passed **14 checks** with
-native fetch and generated File API inputs, including nine core product checks.
-It verifies the visible
-indexing overlay, inert selection, cancel/error recovery, full-patient local
-Select all across 30 studies and multiple pages, patient isolation and final Add.
-
-The AI cases verify that Fresh planning leaves a playing multi-pane view
-unchanged, while explicit Run creates the reviewed clean setup without deleting
-imported studies or manual measurements. Undo restores distinct pane A/B source
-assignments, linking and playback. A Continue request that reduces the layout
-carries the active pane B image, frame, window and camera into the remaining pane;
-Undo restores the prior layout. Changing mode invalidates review while retaining
-text; New request clears AI state and preserves valid Undo. Both controls make
-zero inference requests and do not mutate images.
-
-Five further groups cover generated audio capture/transcription and busy-mode
-controls, stale Fresh review rejection, bounded provider-error recovery, wire
-privacy and an actual same-source automatic-window Undo regression. The latter
-checks an original automatic W2001/L120.5 display, a Continue bone-window override
-and Undo restoring both the automatic mode and its exact frame-derived values.
-A genuine-provider attempt exposed this missing restore behavior before the fix;
-its partial result is not treated as a complete qualification pass. The earlier
-`fb290f4a…` 13-check receipt remains historical evidence.
-
-The final deterministic gate made **ten planning requests** and **one
-generated-tone transcription**, with zero genuine model calls, source uploads,
-foreign browser requests, browser exceptions or console errors. A canceled plan
-and an intentional HTTP502 provider fixture are expected negative paths, not
-unexplained failures. The harness SHA256 is
-`d6aced26e0cab4be1e59a3e69f280aeef4bd07fc55dab3c4ed499f10cc4883cd`.
-
-This authenticated loopback gate qualifies the exercised viewer contracts; it
-is not a genuine-provider pass, diagnostic correctness result or measured clinical
-productivity improvement. Genuine provider/mode qualification remains a separate
-receipt. Earlier sections retain their qualified build fingerprints.
-
-A separate hosted check on this exact build passed **9 checks with 3 genuine
-OpenAI planning requests** using `gpt-6.1-sol`. It imports generated studies once
-and prepares distinct sources in panes A/B to exercise continuation. A right-pane
-bone-window request preserves the left pane and source/frame; Undo restores the
-original automatic window. A one-pane request keeps the previously active B
-source and frame; Undo restores both panes. New request then prepares a fresh
-lung review from the study catalog without reimporting. Planning changes no
-images, every task requires explicit Run, and each Undo restores the baseline.
-The run uses native fetch and the real POST sign-in, with zero retries, original
-imaging inputs, image uploads, image captures, foreign browser requests or browser
-errors. No genuine audio call was part of this gate. The earlier two-request
-attempt exposed the Undo defect and remains a partial historical result;
-the final three-request pass qualifies the fixed build.
-
-## Conceptual clinical viewing assistance — 2026-10-22
-
-Build `11159ac2b646459eb4c61ba80dbce772b406a7a701ba705d90b40899dc4f8c1c`
-passed `npm run check`: **2,538 tests**, production bundling and distributable
-validation. The owned viewer still uses EASI JS as its independent data pipeline.
-
-`node tools/browser-ai-concept-check.mjs` passed **15 checks** using a real
-standalone page, native fetch, generated File API imports and an authenticated
-HTTP gateway with a deterministic planner. Ten conceptual requests each start
-with a freshly imported scout, require no source number or preparatory series
-navigation, leave the view unchanged during planning, execute against the
-expected actual sources, and restore the imported view with Undo. Checks cover
-routine/lung/bone setup, lowest-energy versus blended comparison, three-window
-source sharing, middle-image ellipse/distance preparation, advancing CT cine,
-independent stack endpoints and current/prior viewing. The latter includes a
-same-patient prior fixture. A disclosure expansion after execution is used only
-to verify the prior pane's actual source assignment; it is not source setup.
-The separate anatomy, missing-prior and stale-review checks refuse execution.
-Commands contain no series numbers; source assertions use actual session badges,
-frame counts/positions, numeric windows, tool state and playback advancement.
-The local display profile explicitly prefers available blended routine CT.
-
-The browser gate exposed and drove a fix for cine Undo: per-frame automatic
-window changes must not be classified as manual edits. The captured window mode
-now distinguishes those changes from explicit overrides. Manual window edits,
-source/annotation changes and transforms remain guarded; Undo also preserves
-original automatic window mode. Prior pane links are temporarily disabled in
-reviewed conceptual multi-pane setup so they cannot cascade independent windows
-or requested endpoints. Unit regressions cover both behaviors.
-
-A private local follow-up passed **9 checks** across three workflows on original
-chest CT media: automatic blended lung/soft-tissue setup, lowest-energy versus
-blended comparison, and middle-image ellipse preparation. The original sources
-had 228 images; midpoint selection resolved image 114. No series cards or choices
-were needed, and Undo restored the imported state after each task. The planner
-was deterministic and local: three generic command requests, zero genuine model
-calls, copied originals, source uploads, pixel captures/screenshots, external
-browser requests, browser exceptions or console errors. Receipts contain only
-technical counts, with no clinical identifiers or original paths.
-
-A separate metadata-only audit checked 20 original representative headers:
-indexed and loaded metadata projections matched in all 20, and parsing stopped
-before Pixel Data. One vendor image-type hint (`GSI MONO`) occurs on a source
-explicitly labeled blended. It is therefore not treated as definitive family
-classification. Stronger standard attributes and explicit supported labels retain
-their source/evidence distinctions; genuine conflicts remain unknown. These
-checks establish exercised software behavior, not diagnostic accuracy or a
-measured clinical productivity improvement.
-
-The final hosted native-browser gate passed **12 checks**, including all **10
-fresh-study conceptual workflows**, against the same build and the deployed
-OpenAI `gpt-6.1-sol` planner. Exactly **10 genuine planning requests** returned
-HTTP200. Every case reviewed and executed against actual source bindings,
-numeric windows, frame positions, tool state or advancing playback as applicable;
-Undo restored its imported scout. No preparatory source navigation or source
-numbers were used. The model received only command/protocol fields. Source
-catalogs, original imaging, pixels, screenshots, foreign browser requests,
-browser exceptions and console errors were absent from the model/browser
-transfer path. The source/harness fingerprints match the deterministic gate.
-One initial attempt encountered a login-script HTTP429 before invitation entry
-or inference; its zero-call failure receipt is retained separately. The later
-complete run passed without changing authentication, quotas or concurrency.
-This evidence qualifies the deployed planning interface and exercised workflows,
-not general clinical reasoning, diagnostic accuracy or a time-saving percentage.
-
-
-## Current-study CT series discovery — 2026-10-21
-
-Build `79a4872f4bec333714fd497b8e13a74458bcef781b0aadacb3a7be2850b25b65`
-passed `npm run check`: **2,494 tests**, production bundling and distributable
-validation. The new metadata field uses bounded Image Type tokens. In particular,
-`GSI VUE` and `GSI MD` remain specialized reconstructions even when marked
-ORIGINAL and AXIAL; missing/mixed reconstruction evidence stays unknown.
-
-`node tools/browser-ai-series-check.mjs` passed **8 checks** using the actual
-standalone page, native fetch, a deterministic HTTP planner and generated DICOM.
-The exact paired-window command starts on a scout without series-card navigation,
-resolves one shared three-option choice, displays the chosen stack in both panes
-with independent numeric CT windows, and supports Undo. The sole suitable
-candidate is chosen automatically; explicit displayed-series requests retain
-literal selection. Other studies/patients are not silently substituted. Original
-material-density, virtual-unenhanced, projection and derived candidates are
-excluded from the general comparison. No genuine model call was made by this gate.
-
-A private local-only follow-up passed **10 checks** across selected chest and
-abdominal examinations from original media. Study selection occurred in Open
-Study; no series cards were expanded or chosen. One shared AI-dialog choice
-contained three eligible chest reconstructions or two eligible abdominal
-reconstructions. The selected stacks contained 228 and 184 images respectively;
-both panes used the same selected source with lung W1500/L−600 and soft-tissue
-W400/L40. Counts-only render comparisons differed at 63 of 64 sampled positions
-in each examination. Original pixels were sampled from a transient in-memory
-canvas capture and discarded; no screenshot file or clinical identifier/path was
-retained in the receipts. The planner was deterministic and local. Original
-imaging uploads, external browser requests, exceptions and console errors were
-zero. These checks establish the exercised software paths, not clinical superiority
-of any reconstruction or general imaging/diagnostic accuracy.
-
-The final hosted `--origin` gate passed **5 checks** against this build and
-the deployed OpenAI `gpt-6.1-sol` planner with exactly **one genuine planning
-request**. The exact generic command began on a generated scout, resolved one
-shared three-option choice, loaded the chosen stack into both panes with the
-requested independent windows and matching session assignments, and restored
-the scout with Undo. The model received only the command and protocol fields, with no catalog
-or pixels. Original imaging was not used. Screenshots, external browser
-requests, browser exceptions and console errors were zero. This separate gate qualifies the deployed
-prompt without treating deterministic fixtures as model evidence. An initial
-zero-call harness failure preceded the final successful check: the cold-page
-login form was clicked before its submit handler was ready. The harness now
-verifies the installed handler, real login POST and root-page redirect before
-proceeding. Gateway login behavior was unchanged.
-
-
-## AI session recovery — 2026-10-21
-
-Build `c96dc751584ff5c355a0d695e74cf41034a5c77aa56f00e1a28d88eb17e35c71`
-passed `npm run check`: **2,469 tests**, production bundling and distributable
-validation. Nine new unit regressions cover opt-in URL policy, new-tab controls
-and unauthorized task/audio/draft/connection states.
-
-`node tools/browser-ai-signin-check.mjs` passed **5 checks** using the actual
-standalone viewer, native browser fetch, generated local DICOM and a real
-loopback gateway with a deterministic planner. Its session clock advances past
-the real 30-minute lifetime. The resulting HTTP 401 exposes recovery while
-retaining the original command and local ultrasound image/frame. A trusted click
-opens the configured invitation page in another tab; real form sign-in restores
-the shared cookie without an opener/referrer or any automatic AI retry. The
-original tab keeps its command, source and frame. An explicit retry returns
-HTTP 200 and Run changes the layout successfully.
-
-The count-only receipt is retained in ignored local artifacts. Browser
-exceptions, original clinical inputs and genuine provider calls were zero.
-Neither session lifetimes nor gateway authentication/authorization rules changed.
-
-
-## Reviewed AI workflows — 2026-10-21
-
-Source fingerprint
-`62381d8915839b7d17a7e1f45503c75a7afe0324eb2b71a20e08c0b4b5746ba1`
-passed **2,460 automated tests**, production bundling and distributable checks
-with `npm run check`. Task/audio qualification is separate from the historical
-explanation and connection receipts below.
-
-### Generated standalone workflow gate
-
-`tools/browser-ai-workflow-check.mjs` passed **12 checks** against the actual
-standalone page with an explicitly deterministic loopback planner/transcriber.
-It preserves native browser fetch and observes requests through CDP rather than
-replacing the transport. The generated cases verified:
-
-- Sign-in, opening DICOM files and typing a command cause no automatic AI call
-  or source upload.
-- A reviewed displayed-CT task applies independent lung/soft-tissue windows and
-  visibly different rendered pixels: the sampled RGB values were **230/230/230**
-  and **102/102/102**. Undo survives dialog closure/reopening and restores the
-  prior view.
-- Three original MRI contrast-recorded candidates require a local choice;
-  derived subtraction is excluded. A “with contrast” description cannot create
-  missing agent evidence or enable Run.
-- Cancel blocks late planning results; an external frame change invalidates
-  the reviewed snapshot before execution.
-- A one-based frame-40 request pauses cine and selects actual frame index **39**.
-- Microphone denial leaves typing available; Cancel discards an actual
-  MediaRecorder capture without transmission. A completed capture uses only the
-  transcription endpoint and returns an editable transcript without auto-planning.
-- Requests contain only the allowed command/audio fields and expected-model
-  guard. Browser exceptions, console errors and requests beyond the configured
-  test origin were **zero**.
-
-The ignored receipt is
-`artifacts/browser-ai-workflow-62381-final/results.json`. It records no original
-images, credentials, command/transcript, model prose or screenshots. Its
-`genuineProviderUsed` and `genuineVoiceTranscription` values are **false**: the
-microphone lifecycle was exercised, but its transcript was supplied by the
-fixture. Operational-event privacy is qualified separately by integration unit
-tests; the standalone entrypoint has no event subscriber.
-
-### Private local-study follow-up
-
-The same source fingerprint passed **5 actual-UI checks** using privately
-selected local CT/MRI media through the browser File API. A deterministic local
-planner drove the reviewed actions; no genuine provider was invoked and no
-original imaging bytes were uploaded. The checks exercised CT DICOMDIR import,
-actual distinct CT window rendering, refusal to manufacture missing contrast
-evidence, a three-candidate original MRI choice and opening the selected
-150-instance acquisition.
-
-The private count-only receipt is retained outside public source publication.
-It contains no patient identifiers, study paths, dates, image files, credentials,
-commands/transcripts, model prose or screenshots. Browser exceptions, console
-errors and external browser requests were **zero**. This focused local-study
-follow-up is not a full-corpus or clinical validation claim.
-
-### Genuine provider qualification
-
-The final invited HTTPS run passed **6 actual standalone checks**, with exactly
-**three genuine HTTP 200 calls**: CT planning with `gpt-6.1-sol`, optional speech
-transcription with `gpt-transcribe`, and planning of the reviewed voice command.
-The CT task produced distinct lung/soft-tissue rendering and guarded Undo.
-Actual Record/Stop captured offline-generated speech; the returned transcript
-remained editable and caused no automatic planning. Explicit Plan and Run then
-paused the ultrasound on image **40** (array index **39**).
-
-The ignored receipt is
-`artifacts/public-workflow-62381-native-voice-final/results.json`. Native fetch
-was untouched, requests contained only the allowed fields, and browser
-exceptions, console errors, external browser requests and image uploads were
-zero. One visually inspected review screenshot contains only generated CT pixels,
-a generic command and its model plan. No operator recording, original clinical
-inputs, transcript, invitation, cookie or provider key was retained.
-
-An earlier attempt recorded silence from Chrome's simulated file microphone and
-returned HTTP 502; it is retained as a failed attempt rather than counted as a
-pass. An isolated-browser audio-service/autoplay fixture adjustment enabled
-non-silent speech capture with the **unchanged production capture code**. The
-final receipt records those test-only Chrome flags. A separate bounded generated
-WAV probe also confirmed the transcription service's HTTP 200 response and text
-validation. These checks establish the exercised software paths, not arbitrary
-command accuracy, every microphone/browser or clinical performance.
-
-### Reproduce the gates
-
-The default run builds on generated inputs and uses its own deterministic
-loopback service; it needs no provider credential and makes no genuine AI call:
-
-```sh
-npm run check
-node tools/browser-ai-workflow-check.mjs \
-  --output artifacts/browser-ai-workflow
-```
-
-An explicit `--origin` targets a separately running, compatible invited demo
-and makes genuine, billable planning calls with generated images. The private
-invitation file is read locally; no provider key enters the browser. For example:
-
-```sh
-node tools/browser-ai-workflow-check.mjs \
-  --origin https://d3gv6o0ove04h3.cloudfront.net \
-  --expected-model gpt-6.1-sol \
-  --output artifacts/browser-ai-workflow-public
-```
-
-Adding **`--live-voice`** explicitly opts into the genuine speech gate: two
-planning requests and one transcription request. It uses generated speech,
-actual Record/Stop controls and a reviewed editable transcript; it does not
-record the operator or use original medical inputs. This mode may save one
-review screenshot containing only generated CT pixels and generic task prose,
-as declared in its receipt. Use a separate ignored output directory and inspect
-the command's exit status and receipt; an incomplete/failed attempt is not a pass.
-
-```sh
-node tools/browser-ai-workflow-check.mjs \
-  --origin https://d3gv6o0ove04h3.cloudfront.net \
-  --expected-model gpt-6.1-sol --live-voice \
-  --output artifacts/browser-ai-workflow-public-voice
-```
-
-All of these remain research software integration checks. They do not qualify
-anatomy identification, automatic anatomical measurement, image registration,
-clinical accuracy, every microphone/browser or every real DICOM study. Slice
-links remain subject to the viewer's existing geometry/compatibility checks.
-
-
-## Actual standalone AI transport — 2026-10-21
-
-Source fingerprint
-`9f83f631ac090337099bd4eacb21d6e35b69708de3fe0aa15c8db49442c3d96b`
-passed **2,305 automated tests**, production bundling and distribution checks.
-Two added regressions exercise the default native-like transport for Test and
-Generate. The client invokes fetch independently rather than as a method on
-the AI client object.
-
-Before the correction, the actual standalone Test control reported an unavailable
-gateway with **zero POST requests**. A harmless configuration-file probe verified
-that direct native fetch returned HTTP `200`, while invoking that same native
-function as an object method threw an `Illegal invocation` TypeError. The
-earlier SDK harnesses wrapped fetch to capture bodies; that wrapper masked the
-receiver error. Their historical model, draft and SDK receipts below retain
-their original scope and fingerprints.
-
-`tools/browser-ai-standalone-check.mjs` loads the shipped standalone page and
-never replaces, binds or wraps its native fetch function. It observes bounded
-test-request fields through CDP and uses a disposable browser profile. The
-local OpenAI demonstration passed **5 checks**:
-
-- The actual header/Test action in a fresh browser reaches the gateway, gets
-  HTTP `401` and shows controlled sign-in guidance.
-- The actual invitation form signs in without a model call.
-- The actual Open Images/file-picker workflow imports and displays one
-  generated extensionless 2 × 2 DICOM, without uploading it.
-- The actual header/Test control then succeeds with **one genuine OpenAI
-  `gpt-6.1-sol` connection call**, despite prepared image facts being present.
-  Both test requests contain exactly `{"version":1,"task":"connection-test","facts":[]}`
-  and the matching expected-model header; no image context is submitted.
-- Native fetch remains unchanged, with no unexpected uploads, external browser
-  requests, runtime exceptions or console errors.
-
-The same fingerprint passed **5 actual standalone checks on the invited HTTPS
-deployment**, with exactly **one genuine empty-facts connection call**. Its
-receipt is `artifacts/browser-ai-standalone-public-20261021/results.json`.
-The first hosted attempt stopped during sign-in, before inference; the harness
-was then changed to wait for the complete login page and its deferred submit
-handler. The successful hosted rerun records one login POST/`200`, and no
-credentials, query strings or model prose. The local receipt retains the earlier
-harness hash; both runs used the same viewer build and native transport.
-
-The local count-only receipt belongs under ignored
-`artifacts/browser-ai-standalone-local-20261021/results.json`. No credentials,
-cookies, model prose, screenshots or original medical files are retained. This
-focused connection gate does not repeat the earlier draft-generation suite or
-establish model/clinical accuracy. It explicitly makes one model call; use
-`--unauthenticated-only` for a fresh-session transport check with no provider call.
-
-```sh
-node tools/browser-ai-standalone-check.mjs \
-  --origin http://127.0.0.1:5188 --expected-model gpt-6.1-sol \
-  --output artifacts/browser-ai-standalone-local-20261021
-```
-
-## OpenAI activation qualification — 2026-10-21
-
-Candidate source fingerprint
-`cbed0d1a6c491198349cf9936227b658137d11ec6c2199a4f487678bfe6da6b2`
-passed **2,303 automated tests** plus production build/distribution checks.
-`node tools/browser-ai-check.mjs` passed **12 generated SDK browser checks**,
-including the SDK-owned expected-model equality header on Generate and Test.
-No genuine provider was invoked by these generated checks.
-
-The provider browser gate now reads `viewer-config.json` and checks the deployed
-profile/model instead of assuming Nova Micro. `--expected-model` can pin an
-explicit expected response-model identifier; `--provider` and optional `--region`
-identify the operator-selected deployment in its count-only receipt. It also
-checks that every inference request carries the profile model in the SDK-owned
-`X-Easi-Ai-Model` equality guard. The gate
-still requires a private invitation and makes exactly three explicit model calls
-with generated inputs. It does not put a provider key in the browser.
-
-The activated HTTPS demonstration passed **4 genuine OpenAI browser checks**
-using `gpt-6.1-sol`. Exactly **three** model calls used generated inputs:
-connection test (empty facts), series explanation (14 facts) and a selected
-measurement summary (6 facts, retaining the independently expected 0.75 mm
-viewer calculation). Request previews and the model equality header matched
-all three operations; response model provenance matched `gpt-6.1-sol`.
-
-The metadata draft retained **one numeric-review warning**, with 14 valid
-evidence references. The measurement draft had **zero numeric-review warnings**
-and three valid evidence references. Both had **zero unknown references**.
-These flags remain visible and all prose remains an unverified draft; passing
-the integration does not establish general factual or clinical correctness.
-
-The count-only receipt is stored under ignored
-`artifacts/browser-ai-openai-provider/results.json`. It records model/build and
-request counts without credentials, provider response text, screenshots, original
-images or patient information. Browser exceptions, console errors and requests
-beyond the configured origin were zero; owned resources were zero after cleanup.
-The Bedrock counts/fingerprint below remain historical provider-specific evidence.
-
-The reference gateway rejects a stale/changed expected model with HTTP `409`,
-requiring refresh and fresh sign-in; the header does not select or authorize
-another model. After the activation's invitation rotation, the current private
-invitation is required. The operator ran:
-
-```sh
-node tools/browser-ai-provider-check.mjs \
-  --origin https://d3gv6o0ove04h3.cloudfront.net \
-  --expected-model gpt-6.1-sol --provider OpenAI \
-  --output artifacts/browser-ai-openai-provider
-```
-
-The explicit provider and standalone gates make genuine model calls. Ordinary
-automated tests and the deterministic generated browser gate require no provider key.
-
-## AI Assist Preview — 2026-10-20
-
-The focused build is
-`739fbfdff100ae3226ea193003bc7a7401622c422b5d704b8d4af0242c2f16d5`.
-`npm run check` passed **2,239 tests**, bundling and distribution checks.
-
-- `node tools/browser-ai-check.mjs`: **12 generated checks**, using an explicitly
-  deterministic loopback qualification gateway. Exact reviewed JSON, allowlisted
-  technical/measurement facts, no automatic calls, streamed inert text,
-  source-bound evidence, independent 0.75 mm measurement expectations,
-  numeric/unknown-reference warnings, cancel, 390px/Escape UI, source-change
-  invalidation, independent unconfigured embeds, disabled AI and cleanup passed.
-  Nine additional source-binding/queued-request cases cover insertion/reordering,
-  removal, duplicate identities and original-frame resolution. Exact decoded-frame
-  identity is admitted before viewport commit, including after a queued stack
-  changes; mismatches cannot replace the displayed image.
-  Desktop and narrow screenshots were visually reviewed. This fixture service
-  does not count as a genuine model invocation.
-- `node tools/browser-ai-provider-check.mjs`: **4 genuine-provider checks**,
-  through the separately authenticated deployed HTTPS demonstration service.
-  Exactly
-  **three** explicit calls used Amazon Bedrock `amazon.nova-micro-v1:0` in
-  `us-east-1`: synthetic connection, series explanation and selected measurement
-  summary. The two drafts retained their exact reviewed facts and verified
-  response-model label. Both had zero numeric-quotation and unknown-evidence
-  flags in this run. No original medical inputs were used.
-
-Receipts remain ignored under `artifacts/browser-ai/` and
-`artifacts/browser-ai-provider/`. The genuine-provider receipt contains counts
-and model/build provenance, never the private invitation, cookie, model text,
-pixels or patient information. Only the configured CloudFront demonstration
-origin was contacted by the browser; genuine provider inference occurred on the server. Both suites
-recorded zero browser exceptions/console errors and released owned worker,
-encoded and decoded resources. The historical corpus and cross-engine campaigns
-were not repeated by these focused checks. These results demonstrate software
-integration and do not establish general semantic or clinical correctness.
-
-The genuine gate is an explicit operation that invokes the selected remote
-model. It requires the [separately started source-checkout gateway](https://github.com/davidvaccaro/easi-view/tree/main/examples/ai-gateway)
-and a private invitation file outside the repository. The verified deployment is
-[the invited AI demonstration](https://d3gv6o0ove04h3.cloudfront.net/api/ai/login);
-pass `--origin https://d3gv6o0ove04h3.cloudfront.net` to target it. Its default
-local origin is `http://127.0.0.1:5188`; `--passcode-file` selects the private file and
-`--output` selects an ignored receipt directory. It never prints the access
-code or model response. Ordinary automated/unit tests do not require provider
-credentials or make model calls.
+## AI-free v1 candidate qualification — 2026-10-22
+
+The fixed **1.0.0-rc.1** source fingerprint is
+`c335d229eedd333db5afac0f29534a1e93044e68799590b26e6c6c88a3d510ab`.
+`npm run check` passed **2,163 tests with zero skipped**, production bundling and
+AI-free module/runtime/distribution checks. Every receipt retains its exact source
+fingerprint; the previous 2,156-test build is not substituted for this result.
+
+| Native-browser gate | Passed checks |
+| --- | --- |
+| Standalone opening/indexing/selection and AI-free boundary | 9 |
+| Patient/study/series session navigation | 21 |
+| Annotation gestures, source binding and statistics | 18 |
+| Workspace layout, assignment and links | 15 |
+| Inspector hierarchy, active source and disconnect cleanup | 25 |
+| Embedded integration, initial display and lifecycle | 11 |
+| **Total** | **99** |
+
+These generated-input gates exercise real browser UI/File APIs. They include
+cancellable indexing and Add overlays, local Select all across 30 studies/pages,
+patient isolation, extensionless ultrasound navigation/cine, independent embeds
+and source/resource cleanup. The base-release gate leaves native fetch intact and
+checks the absence of assistant controls, AI SDK methods/events, configuration
+fetches, authentication/model requests and source uploads. Supplying the removed
+`ai` option is rejected before mounting. Derived-result import remains available.
+
+Qualification found two real defects before the final pass. Archive disconnect
+released its client too early and left remote pane B/pixels/Attributes retained;
+cleanup now runs while the binding is available. The embedded host listened only
+to frame navigation and could remain at Preparing after initial source display;
+it now also handles `sourcechange`. Both fixes are included in the fingerprint
+and final browser counts above. Older harness assumptions about an implicit
+initial CT demo or unawaited async workspace operations were corrected without
+restoring implicit demo loads or weakening product assertions.
+
+A separate clean independent SDK consumer passed **9 actual Chrome checks**, plus
+six Node export checks and strict TypeScript **5.3.3** compilation. It installed
+the packed viewer with registry-resolved EASI JS 1.0.1, copied all **46 files**
+through direct and `npx` CLI paths, mounted the SDK, verified exact **64-sample
+JPEG-LS** values and **0.75 mm** calibration, and completed disposal. This is
+consumer/runtime qualification, not proof that the viewer was already published
+to npm. Final publication/tag/integrity and hosted results belong to release
+records and must be verified separately.
+
+The **23,893-file private full-corpus campaign is running** on the actual fixed
+build, checking every logical frame in successful supported sessions. No final
+outcome is claimed. It blocks stable 1.0.0; candidate `next` publication can expose
+this remaining gate explicitly. Originals and private reports stay outside the
+public SDK and release assets. These browser/software checks do not establish
+clinical validation or broad native-device/production-network performance.
+
+The completed AI experiment is preserved at commit
+[`5142fa1f51e0dd9345fd002c1fbac15d18672f33`](https://github.com/davidvaccaro/easi-view/tree/5142fa1f51e0dd9345fd002c1fbac15d18672f33)
+on `feature/ai-assist-preview`; [AI_BACKLOG.md](AI_BACKLOG.md) summarizes its
+separate historical qualification. Those results do not qualify this base release.
+The non-AI historical evidence below is also retained with its original scope;
+prior headless rendering does not establish current native-device or clinical validation.
 
 ## Compact current-image notices — 2026-10-19
 

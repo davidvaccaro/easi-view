@@ -124,7 +124,7 @@ window.__viewer=createViewer(document.getElementById('one'));for(const kind of [
     assert.equal(observed.panes.length, 2); assert.deepEqual(frameIndices(observed.workspace), [0, 0]);
     assert.ok(observed.panes.every(pane => pane.rect.width > 100 && pane.rect.height > 100));
     assert.deepEqual(observed.stored[1], samples(1, 0)); assertPixels(observed.gpu[1], samples(1, 0));
-    await browser.evaluate('(async()=>{window.__viewer.setLayout(4);await window.__viewer.assignViewportSeries(2,2);await window.__viewer.assignViewportSeries(3,3);})()');
+    await browser.evaluate('(async()=>{await window.__viewer.setLayout(4);await window.__viewer.assignViewportSeries(2,2);await window.__viewer.assignViewportSeries(3,3);})()');
     observed = await browser.evaluate('window.__observe()');
     assert.equal(observed.panes.length, 4); assert.equal(observed.workspace.layout, 4);
     assert.deepEqual(frameIndices(observed.workspace), [0, 0, 0, 0]);
@@ -185,7 +185,12 @@ window.__viewer=createViewer(document.getElementById('one'));for(const kind of [
     assert.ok(assignmentRollback.after.panes.every(pane => !pane.emptyVisible && !pane.loadingVisible && !pane.frameLoading), 'Restored assigned panes must show their image without stale empty/loading overlays.');
     record('GPU-inexact series assignment rolls back its pane model and presentation before replacing the committed texture');
 
-    await browser.evaluate(`(()=>{const v=window.__viewer;v.setActiveViewport(3);window.__beforeBadSource=window.__observe();window.__badSource=v.openFiles([window.__qa.delayedBadFile()]).then(()=>({rejected:false}),error=>({rejected:true,message:error.message}));v.setActiveViewport(1);return true;})()`);
+    await browser.evaluate(`(()=>{const v=window.__viewer;v.setActiveViewport(3);window.__beforeBadSource=window.__observe();window.__badSource=v.openFiles([window.__qa.delayedBadFile()]).then(()=>({rejected:false}),error=>({rejected:true,message:error.message}));return true;})()`);
+    // Cleanup can await before the source transaction begins. Activate B only
+    // after the delayed read is busy, so this really tests activation during
+    // parsing rather than a synchronous change before the rollback snapshot.
+    await browser.until('window.__viewer.getState().busy', 'The delayed replacement did not enter its source transaction.');
+    await browser.evaluate('window.__viewer.setActiveViewport(1)');
     const sourceRollback = await browser.evaluate(`(async()=>({result:await window.__badSource,prior:window.__beforeBadSource,after:window.__observe()}))()`);
     assert.equal(sourceRollback.result.rejected, true); assert.match(sourceRollback.result.message, /GPU|precision|exact/i);
     assert.equal(sourceRollback.after.workspace.activeViewport, sourceRollback.prior.workspace.activeViewport);
@@ -196,7 +201,7 @@ window.__viewer=createViewer(document.getElementById('one'));for(const kind of [
     await browser.evaluate('window.__viewer.setActiveViewport(0);window.__shadow.getElementById("dismiss-error").click()');
     await browser.screenshot('workspace-four-synthetic');
 
-    const reduced = await browser.evaluate('(()=>{const v=window.__viewer;window.__removedCanvas=window.__canvas(3);v.setActiveViewport(3);v.setLayout(2);return window.__observe();})()');
+    const reduced = await browser.evaluate('(async()=>{const v=window.__viewer;window.__removedCanvas=window.__canvas(3);v.setActiveViewport(3);await v.setLayout(2);return window.__observe();})()');
     assert.equal(reduced.workspace.layout, 2); assert.ok(reduced.workspace.activeViewport >= 0 && reduced.workspace.activeViewport < 2); assert.equal(reduced.panes.length, 2);
     assert.equal(await browser.evaluate('window.__removedCanvas.isConnected'), false);
     const preserved = reduced.workspace.viewports.map(viewport => viewport.frameIndex);
@@ -218,7 +223,7 @@ window.__viewer=createViewer(document.getElementById('one'));for(const kind of [
     await browser.evaluate('window.__viewer.setSynchronization({slice:false,window:false,camera:false})');
     record('successive source seeks coalesce asynchronous linked navigation onto the latest committed patient plane');
 
-    await browser.evaluate(`(async()=>{const v=window.__viewer;v.configureArchive({baseUrl:${quote(baseUrl)}});await v.openArchiveSeries(${quote(study)},${quote(archiveSeries)});v.setLayout(2);await v.assignViewportSeries(1,0);v.setActiveViewport(0);})()`);
+    await browser.evaluate(`(async()=>{const v=window.__viewer;v.configureArchive({baseUrl:${quote(baseUrl)}});await v.openArchiveSeries(${quote(study)},${quote(archiveSeries)});await v.setLayout(2);await v.assignViewportSeries(1,0);v.setActiveViewport(0);})()`);
     serverOptions.slow = 1;
     await browser.evaluate('window.__slow=window.__viewer.setFrame(1).then(()=>({success:true}),e=>({success:false,name:e.name}));true');
     for (let step = 0; step < 100 && !requests.some(request => request.type === 'instance' && request.index === 1); step++) await delay(10);
@@ -233,7 +238,7 @@ window.__viewer=createViewer(document.getElementById('one'));for(const kind of [
     serverOptions.slow = null;
 
     const beforeFrameMode = requests.length;
-    await browser.evaluate(`(async()=>{const v=window.__viewer;v.setLayout(1);v.configureArchive({baseUrl:${quote(baseUrl)},retrievalMode:'frame'});await v.openArchiveSeries(${quote(study)},${quote(archiveSeries)});await v.setFrame(2);await v.setFrame(0);})()`);
+    await browser.evaluate(`(async()=>{const v=window.__viewer;await v.setLayout(1);v.configureArchive({baseUrl:${quote(baseUrl)},retrievalMode:'frame'});await v.openArchiveSeries(${quote(study)},${quote(archiveSeries)});await v.setFrame(2);await v.setFrame(0);})()`);
     const frameMode = await browser.evaluate('window.__observe()');
     const frameRequests = requests.slice(beforeFrameMode);
     assert.deepEqual(frameRequests.filter(request => request.type === 'frame').map(request => request.index), [0, 2]);

@@ -1,165 +1,53 @@
 # Changelog
 
-## Unreleased — clear opening progress and AI request starting points
+## 1.0.0-rc.1 — AI-free release candidate, 2026-10-22
+
+Prepare the first source-available base-viewer release with a frozen supported
+profile and independently published EASI JS 1.0.1 dependency. Public candidate
+publication targets npm `next`; stable 1.0.0 remains gated by the running full
+23,893-file corpus campaign and review.
+
+Preserve the complete AI experiment on `feature/ai-assist-preview` at commit
+`5142fa1f51e0dd9345fd002c1fbac15d18672f33`, tagged
+`checkpoint/pre-v1-ai-split-2026-10-22`. Remove AI controls, public SDK options,
+methods and events, voice capture, planner/explanation clients, gateway examples
+and AI deployment tools from the release. Preserve full target IDs, completed
+Preview contracts and historical evidence in [AI_BACKLOG.md](docs/AI_BACKLOG.md).
+
+Retain core improvements made during the experiment: opening/indexing progress,
+Select all and patient isolation, automatic window behavior, cine and pane/source
+handling, conservative metadata and measurement correctness. DICOM SEG/SR/GSPS
+and explicit supplied overlays remain supported independently of AI execution.
+Build and artifact guards require an AI-free module inventory and reject hidden
+AI imports, runtime code, public API/configuration or deployment assets.
+
+Document release scope, remaining compatibility/corpus/browser/consumer gates
+and reproducible candidate publishing in [RELEASE_PLAN.md](docs/RELEASE_PLAN.md)
+and [RELEASING.md](docs/RELEASING.md). Existing advanced profiles retain their
+previously declared limits; no new specialty functionality is added.
+
+Fix archive disconnect cleanup before releasing the client binding, so remote
+panes/pixels and Attributes are cleared. Update the embedded example to handle
+initial source changes as well as frame navigation, replacing its preparing status
+on the first displayed image.
+
+Source `c335d229eedd333db5afac0f29534a1e93044e68799590b26e6c6c88a3d510ab`
+passed **2,163 tests with zero skipped**, production build/distribution guards and
+**99 native-browser checks**. A clean independent SDK consumer additionally passed
+9 actual Chrome checks, six Node export checks, TypeScript 5.3.3, direct/CLI asset
+copying, exact JPEG-LS values/calibration and disposal. These checks do not claim
+clinical validation or a completed new-build corpus pass. Final registry/release
+and deployment proof is recorded separately.
+
+## Unreleased — opening progress and study selection
 
 Show a dimmed, cancellable progress overlay during local file/media indexing,
-remote queries and final admission, not only the last Add step. Paint the busy
-state before starting indexing work; errors restore the selection for retry.
-Add local **Select all** across every available study for the selected patient,
-with mixed-state/count feedback and clear-selection controls. Remote **Select
-all studies on this page** selects known current-page rows only; it never fetches
-or assumes unseen studies. Checked remote selections remain across pages.
-
-AI Tasks now defaults to **New task from study**. Its reviewed preparation stops
-playback and links, starts one clean pane and applies the requested setup only
-on Run, retaining imported studies and measurements. **Continue current view**
-builds on actual current panes, without conversation history. Collapsing that
-layout preserves the previously active image, frame, window and camera in the
-remaining pane. **New request**
-clears AI text, plan, choices and errors, resets the default, and preserves the
-last valid Undo without changing images. Mode changes invalidate review, preserve
-command text and make no request. Busy operations and recording lock these
-controls. Closing/reopening resets the starting point while retaining guarded
-Undo. Snapshot mode is bound through review/Run; local expanded review shows up
-to 16 steps instead of hiding preparation after the 12 model-action limit.
-
-Restore the original automatic window mode and its exact frame-derived values
-when Undo returns to the same stack after an explicit preset override. This
-preserves automatic presentation instead of retaining the later manual preset.
-
-Plan requests accept only the optional bounded `mode: fresh | continue` field in
-addition to the legacy command envelope. Legacy requests remain accepted with
-continuation semantics. No authentication, provider/model, quota or credential
-configuration changes.
-
-## Unreleased — conceptual clinical viewing assistance
-
-Add closed conceptual selection and first/middle/last position actions alongside
-legacy exact selections. Resolve ordinary CT, blended/monoenergetic families,
-recorded energy, slice thickness and kernel locally. Preserve source evidence,
-all-instance agreement, patient/study scope and explicit ambiguity. Index the
-standard binary FD energy attribute without confusing tube kVp with keV; retain
-bounded label evidence separately. Explicit coronal/sagittal requests can use
-available recorded reformats; no image reconstruction is performed by AI.
-
-Share one conceptual source binding across any number of panes. Add a local,
-optional routine CT display preference; the isolated demo selects available
-blended images, while the SDK defaults to no preference. Explain this policy in
-review rather than claiming an optimal clinical reconstruction. Unlink previous
-pane synchronization before arranging conceptual multi-pane tasks so old links
-cannot overwrite requested independent windows or positions; Undo restores the
-captured session. Keep review-before-Run, cancellation and stale-source guards.
-No image interpretation, anatomy localization or automatic measurements are
-introduced. See the conceptual command list in docs/AI_WORKFLOWS.md.
-
-## Unreleased — CT series selection inside AI Assist
-
-Resolve “Show this CT in lung and soft-tissue windows side by side” against
-the current study's local metadata, without requiring an individual series to
-be opened first. Select a single qualifying axial stack automatically;
-when several qualify, offer one shared choice inside AI Assist and use that
-same stack in both panes. Explicit requests for the currently displayed series
-or an exact series number preserve that selection. With no current study, match
-only the active patient's admitted studies: resolve an unambiguous candidate
-or ask for a choice, without silently using the first study or another patient.
-
-Add bounded reconstruction evidence from explicit Image Type tokens. General
-paired-CT searches exclude localizers, derived images, reformats, projections,
-virtual unenhanced images and material maps. An image marked ORIGINAL can still
-be explicitly marked as virtual unenhanced; neither an ORIGINAL flag nor a
-description alone establishes its suitability. Unknown or conflicting evidence
-stays unknown. Unknown derivation can remain eligible subject to supported-image
-and HU checks when opened. Multiple ordinary reconstructions remain choices,
-without an invented energy preference or claim that one is clinically superior. These
-search exclusions do not prevent an explicit series request.
-
-## Unreleased — AI sign-in recovery
-
-AI Assist includes an explicit host-configured sign-in link. Expired Tasks,
-voice, Explain and connection-test requests explain how to sign in in another
-tab and retry without losing the open local study or command. Refreshing the
-public viewer does not renew its separate AI session. No automatic model request
-or retry is introduced.
-
-## Unreleased — reviewed voice and text viewer workflows
-
-Add an opt-in **Tasks** tab to AI Assist, alongside the existing **Explain**
-tools. Text commands are planned by `gpt-6.1-sol`; optional push-to-talk audio
-uses server-side `gpt-transcribe` and returns an editable transcript. Review the
-proposed steps, resolve ambiguous series locally, then explicitly Run task.
-Commands and sent recordings leave the device; no automatic catalog, patient
-identifier, raw DICOM or pixel context is added. User-spoken/typed identifiers
-are not automatically redacted. Provider credentials remain server-side.
-
-Introduce a closed action schema and local broker for 1/2/4-pane layouts,
-series selection, calibrated CT windows, compatible links, frame/cine control,
-existing tools and returning to an existing measurement. Preserve exact image
-stack and active-pane identity, conservative contrast/orientation evidence,
-series ambiguity, cancellation, partial rollback and guarded one-task Undo.
-Manual changes and patient/source changes invalidate affected plans or Undo.
-
-Add metadata-only workflow indexing and generated CT/MRI ambiguity fixtures.
-No anatomy detection, automatic anatomical measurement, image interpretation,
-registration, plugin runtime or marketplace is included. Hosts enable the
-feature with `ai.workflows: true`; a separately configured compatible gateway
-is required. See [AI_WORKFLOWS.md](docs/AI_WORKFLOWS.md) for testable examples.
-
-## Unreleased — standalone AI transport correction
-
-Invoke the configured fetch function independently of the AI client object so
-browser-native fetch keeps its required invocation semantics. Previously the
-standalone Test/Generate controls could report an unavailable gateway before
-making any network request. Add default-transport regressions for both actions
-and an actual standalone browser gate that leaves native fetch untouched,
-observes requests through CDP, signs in through the invitation form and imports
-a generated local DICOM through Open Images. Earlier SDK browser gates used a
-request-capture wrapper that masked this receiver failure; their evidence
-remains scoped to that SDK harness.
-
-## Unreleased — OpenAI gateway option and connection diagnostics
-
-Add an optional server-only OpenAI Responses adapter for `gpt-6.1-sol`, with low
-reasoning, streaming text, `store: false`, bounded output and verified completion
-provenance. Reuse the existing selected-fact request contract; image bytes,
-patient identifiers and browser-held provider keys remain excluded. Support a
-private local key file or a server-owned AWS Secrets Manager reference. Scope
-demonstration sessions to the selected provider/model and require fresh sign-in
-when it changes.
-
-Bind reference-gateway inference to `options.ai.model` through the SDK-owned
-`X-Easi-Ai-Model` equality header. A mismatch returns controlled HTTP `409`;
-refreshing and signing in again is required. The header does not select a model.
-
-Distinguish provider errors (`502`) and timeouts (`504`) from an unavailable
-gateway, and make expired/unauthorized access and provider-configuration errors
-actionable using controlled messages. No provider response body or key is exposed.
-Activate the invited demonstration with OpenAI `gpt-6.1-sol` on 2026-10-21,
-keeping the key server-side and requiring fresh sign-in after the provider
-switch. Genuine synthetic connection, series-explanation and selected-measurement
-calls passed browser integration. Preserve numeric-review flags and unverified
-draft status; the metadata draft had one review warning in this run. Historical
-Bedrock evidence remains separate.
-
-## Unreleased — AI Assist (Preview)
-
-Add an optional host-configured AI gateway connection for explaining selected
-series metadata and drafting summaries of explicitly selected existing
-measurements. Preview the named recipient and exact bounded request facts before
-Generate; stream bounded literal-text unverified drafts, retain source evidence,
-flag unknown references/numeric discrepancies and preserve authoritative viewer
-calculations. Keep provider credentials on the gateway and omit patient
-identifiers, unrestricted source text, DICOM bytes and pixels from requests.
-
-Add an optional branded dialog with cancellation, synthetic connection testing,
-source-bound context and invalidation on patient/source/measurement changes.
-Expose typed SDK configuration, safe operational state/events and explicit draft
-access. AI is off by default and never invokes a model when studies open.
-Provide a separately operated demonstration gateway with server-side model
-connectivity. Imaging inference, plugins and marketplace remain backlog targets;
-this does not change the alpha version or establish clinical validation.
-
-The accepted full AI target remains in [AI_BACKLOG.md](docs/AI_BACKLOG.md), with
-stable capability IDs and phased completion gates.
+remote queries and final admission. Paint the busy state before indexing work;
+errors restore selection for retry. Local **Select all** covers every available
+study for the selected patient across pages, with mixed-state/count feedback and
+Clear selection. Remote **Select all studies on this page** covers known current
+rows only; it does not fetch or assume unseen studies. Checked remote selections
+remain across pages.
 
 ## Unreleased — compact current-image notices
 

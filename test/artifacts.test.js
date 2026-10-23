@@ -19,7 +19,7 @@ test('independent artifact packaging verifies distribution and source provenance
         await mkdir(resolve(fixture, 'public'));
         await cp(resolve(project, 'licenses'), resolve(fixture, 'licenses'), { recursive: true });
         for (const name of ['package.json', 'package-lock.json', 'LICENSE', 'NOTICE']) await cp(resolve(project, name), resolve(fixture, name));
-        for (const name of ['build.mjs', 'source-digest.mjs', 'dist-manifest.mjs', 'check-dist.mjs', 'pack-artifact.mjs']) {
+        for (const name of ['build.mjs', 'source-digest.mjs', 'dist-manifest.mjs', 'check-dist.mjs', 'pack-artifact.mjs', 'release-profile.mjs']) {
             await cp(resolve(project, 'tools', name), resolve(fixture, 'tools', name));
         }
         await cp(resolve(project, 'src/integration/easi-view.d.ts'), resolve(fixture, 'src/integration/easi-view.d.ts'));
@@ -96,6 +96,25 @@ test('independent artifact packaging verifies distribution and source provenance
             await writeFile(file, original);
         });
 
+        await t.test('AI configuration cannot enter a static release even with an updated inventory', async () => {
+            const file = resolve(fixture, 'dist/viewer-config.json');
+            const infoFile = resolve(fixture, 'dist/build-info.json');
+            const original = await readFile(infoFile, 'utf8');
+            await writeFile(file, '{"ai":{"enabled":false}}');
+            const info = JSON.parse(original);
+            const { distInventory } = await import(pathToFileURL(resolve(fixture, 'tools/dist-manifest.mjs')).href);
+            info.files = await distInventory(resolve(fixture, 'dist'));
+            await writeFile(infoFile, JSON.stringify(info));
+            try {
+                const result = run('pack-artifact.mjs');
+                assert.notEqual(result.status, 0);
+                assert.match(result.stderr, /AI (?:runtime code or configuration|deployment asset) must not enter/);
+            } finally {
+                await rm(file);
+                await writeFile(infoFile, original);
+            }
+        });
+
         await t.test('changed source requires a new build before packaging', async () => {
             await writeFile(resolve(fixture, 'src/main.js'), 'export const fixture = 2;\n');
             const stale = run('pack-artifact.mjs');
@@ -105,6 +124,15 @@ test('independent artifact packaging verifies distribution and source provenance
             assert.equal(build.status, 0, build.stderr);
             const fresh = run('pack-artifact.mjs');
             assert.equal(fresh.status, 0, fresh.stderr);
+        });
+
+        await t.test('a disabled AI import is rejected from actual bundler inputs', async () => {
+            await mkdir(resolve(fixture, 'src/ai'));
+            await writeFile(resolve(fixture, 'src/ai/disabled.js'), 'export const disabled = true;\n');
+            await writeFile(resolve(fixture, 'src/main.js'), "import './ai/disabled.js';\nexport const fixture = 3;\n");
+            const result = run('build.mjs');
+            assert.notEqual(result.status, 0);
+            assert.match(result.stderr, /AI experiment input must not enter the base viewer/);
         });
     } finally { await rm(fixture, { recursive: true, force: true }); }
 });

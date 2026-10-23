@@ -1,5 +1,4 @@
 import { SourceRegistry } from '../catalog/SourceRegistry.js';
-import { normalizeAiConfiguration } from '../ai/AiClient.js';
 
 const themeProperties = Object.freeze({
     accent: '--accent',
@@ -88,7 +87,7 @@ function normalizeTheme(value) {
 
 /** Validate host configuration without DOM mutations or network requests. */
 export function normalizeOptions(raw = {}) {
-    const source = record(raw, 'options', ['branding', 'theme', 'ui', 'initialDemo', 'styleNonce', 'sources', 'opening', 'ai']);
+    const source = record(raw, 'options', ['branding', 'theme', 'ui', 'initialDemo', 'styleNonce', 'sources', 'opening']);
     const branding = { name: 'EASI View', logoUrl: null, logoAlt: '', showReleaseTag: true };
     if (Object.hasOwn(source, 'branding')) {
         const values = record(source.branding, 'options.branding', Object.keys(branding));
@@ -127,7 +126,6 @@ export function normalizeOptions(raw = {}) {
         result.opening = Object.fromEntries(Object.entries(values).map(([key, value]) => [key, boolean(value, `options.opening.${key}`)]));
         if (result.opening.tests === false && initialDemo !== null) throw new TypeError('Enable synthetic examples before choosing an initial demo.');
     }
-    if (Object.hasOwn(source, 'ai')) result.ai = normalizeAiConfiguration(source.ai);
     return result;
 }
 

@@ -6,10 +6,11 @@ navigation and branding while EASI View owns the image workspace. The SDK mounts
 inside a Shadow DOM boundary; its styles and keyboard shortcuts stay inside the
 component, rather than changing your application's page styles or shortcuts.
 
-This is a typed browser ES-module integration in the private research alpha.
-Local static/npm archives are available; registry publication and the completed
-general viewer release remain separate. Supported image profiles
-and remaining limitations are unchanged; see [STATUS.md](STATUS.md).
+This is the typed browser ES-module integration for the AI-free **1.0.0-rc.1**
+release candidate. Public candidate publication uses npm’s **next** tag; stable
+1.0.0 remains a separate release after the final corpus review. See the current
+publication status in [README.md](../README.md), the exact supported image profiles
+in [STATUS.md](STATUS.md), and the outstanding gates in [RELEASE_PLAN.md](RELEASE_PLAN.md).
 
 ## Try the integration example
 
@@ -24,7 +25,17 @@ available to host applications supplying their own worklists.
 
 ## Mount in your application
 
-Run `npm run build` and serve the distribution's assets from your own application.
+For a candidate published under `next`, install and copy its adjacent runtime assets:
+
+```sh
+npm install @xinonix/easi-view@next
+npx easi-view-copy-assets public/easi-view
+```
+
+During publication preparation, use the packed
+`xinonix-easi-view-1.0.0-rc.1.tgz` in place of the registry package. Either path
+resolves the independent EASI JS 1.0.1 dependency from npm. From a source checkout,
+run `npm run build` and serve the distribution's assets from your own application.
 Keep the SDK, `decode-worker.js`, linked legal-comment files and license notices
 together. No sibling EASI checkout or runtime CDN is required. See
 [ARTIFACTS.md](ARTIFACTS.md) for packaging and redistribution requirements.
@@ -55,9 +66,11 @@ const viewer = createViewer(document.getElementById('imaging-viewer'), {
   ui: { library: false, demos: false }
 });
 
-const stopListening = viewer.on('framechange', state => {
-  console.log(`Image ${state.frameIndex + 1} of ${state.frameCount}`);
-});
+function describeImage(state) {
+  if (state.image) console.log(`Image ${state.frameIndex + 1} of ${state.frameCount}`);
+}
+const stopSourceListening = viewer.on('sourcechange', describeImage);
+const stopFrameListening = viewer.on('framechange', describeImage);
 viewer.on('error', error => console.error(error.message));
 await viewer.ready;
 
@@ -71,7 +84,8 @@ document.getElementById('dicom-files').addEventListener('change', async event =>
 
 // Call these from your framework/component unmount lifecycle:
 function unmountViewer() {
-  stopListening();
+  stopSourceListening();
+  stopFrameListening();
   viewer.dispose();
 }
 ```
@@ -93,12 +107,11 @@ an actionable error before mounting.
 | `branding.name` | `EASI View` | Nonempty plain text, at most 120 characters |
 | `branding.logoUrl` | `null` | Relative asset path or explicit HTTP(S) URL; no URL credentials, executable schemes or protocol-relative URLs |
 | `branding.logoAlt` | Empty string | Plain text, at most 120 characters |
-| `branding.showReleaseTag` | `true` | Boolean; controls the visible alpha label |
+| `branding.showReleaseTag` | `true` | Boolean; controls the visible release label |
 | `theme` | `{}` | Supported hexadecimal color tokens below |
 | `ui.header`, `ui.library`, `ui.inspector`, `ui.statusBar`, `ui.demos` | All `true` | Booleans controlling the corresponding chrome |
 | `initialDemo` | `null` | `ct`, `mr`, `xr`, `us`, or `null` |
 | `styleNonce` | `null` | Host CSP nonce, nonempty text up to 256 characters without control characters |
-| `ai` | Disabled | Optional single gateway/model profile for explicit metadata/measurement assistance; see [AI_ASSIST.md](AI_ASSIST.md) |
 
 Theme keys are `accent`, `background`, `panel`, `text`, `muted` and `border`.
 Values must be three- or six-digit hex colors, such as `#7aa9ff` or `#123`.
@@ -114,7 +127,7 @@ viewer.setBranding({ name: 'Orbit Research', logoUrl: '/images/orbit.svg', logoA
 viewer.setTheme({ accent: '#c2a6ff', panel: '#171427' });
 
 // These replace their respective configuration objects. Omitted fields reset:
-viewer.setBranding({}); // EASI View name, no logo, alpha label visible
+viewer.setBranding({}); // EASI View name, no logo, release label visible
 viewer.setTheme({});    // Default viewer colors
 ```
 
@@ -317,10 +330,10 @@ license and notice obligations. Retain the distribution's license files and
 required notices. Commercial product use remains subject to eligibility or a
 written commercial agreement; see [LICENSING.md](LICENSING.md).
 
-This foundation supports the current supported 2D research alpha and host-managed
-archive access. Viewer-managed sign-in, advanced reconstruction and broad
-compatibility/performance gates remain future work; no clinical/regulatory
-validation is claimed.
+This foundation supports the declared research-viewer profiles and host-managed
+archive access. Reconstruction has its own bounded profile in
+[RECONSTRUCTION.md](RECONSTRUCTION.md). Broader archive compatibility, production
+performance and clinical/regulatory validation remain separate gates.
 
 ## Study and annotation APIs
 
@@ -343,21 +356,7 @@ The package's `easi-view.d.ts` declares the complete public viewer API.
 The installed package also exports `createViewer` and `createEnterpriseViewer` for ESM browser bundlers. The two-stage minified browser build is tested. Keep `decode-worker.js` and `dicom-codecs.wasm` adjacent in the copied `assets` directory and emit the host's ESM bundle there, so the module-relative worker URL resolves correctly. Preserve the copied legal files. Importing the served SDK URL as shown above is another supported integration. Bundling the JavaScript does not automatically copy worker/WASM files.
 
 Advanced public APIs are typed in the package declarations and documented in [RECONSTRUCTION.md](RECONSTRUCTION.md), [DERIVED_OBJECTS.md](DERIVED_OBJECTS.md), [ENTERPRISE.md](ENTERPRISE.md) and [SPECIALTIES.md](SPECIALTIES.md). `dispose()` removes the mounted component synchronously; await `whenDisposed()` before measuring completed pending-buffer cleanup.
-## Optional AI Assist (Preview)
 
-Configure `ai` to expose the optional header/menu entry for explaining series
-metadata and summarizing selected existing measurements. The user reviews the
-named recipient and exact fact context before **Generate**. Provider credentials
-stay on the gateway; no image bytes, pixels, patient identifiers, source URLs or
-unrestricted source text enter the AI request. Viewer-calculated facts remain
-authoritative and generated text remains an unverified draft.
-
-Use `openAiAssist()`, `closeAiAssist()` and `cancelAiAssist()` for host controls;
-`getAiState()` and `aichange` expose safe operational state only. Explicit
-`getAiDraft()` returns the transient text, supplied facts and validation flags.
-Patient/source/annotation invalidation and disposal cancel owned work; source
-evidence retains its captured image binding. The host controls gateway
-credentials/authorization and any intentional downstream use of retrieved drafts.
-See [AI_ASSIST.md](AI_ASSIST.md) for complete configuration, exact transfer
-boundaries, budgets, lifecycle and the separately operated demonstration service.
-
+AI configuration, AI events and assistant methods are not part of this initial
+release. Passing an `ai` option throws an unknown-option error before mounting.
+The preserved experimental design is recorded in [AI_BACKLOG.md](AI_BACKLOG.md).

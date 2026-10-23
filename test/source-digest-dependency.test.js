@@ -12,7 +12,7 @@ test('qualification fingerprint detects core source drift even with unchanged ve
             await mkdir(resolve(directory, name), { recursive: true });
         }
         for (const name of ['index.html', 'package.json', 'package-lock.json', 'LICENSE', 'NOTICE', 'tools/build.mjs',
-            'tools/source-digest.mjs', 'tools/dist-manifest.mjs', 'node_modules/@xinonix/easi-js/package.json',
+            'tools/source-digest.mjs', 'tools/dist-manifest.mjs', 'tools/release-profile.mjs', 'node_modules/@xinonix/easi-js/package.json',
             'node_modules/@xinonix/easi-js/LICENSE', 'node_modules/@xinonix/easi-js/NOTICE', 'node_modules/@xinonix/easi-js/src/index.js']) {
             await mkdir(dirname(resolve(directory, name)), { recursive: true });
             await writeFile(resolve(directory, name), 'Generated synthetic provenance fixture.\n');

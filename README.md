@@ -4,7 +4,8 @@ An independent, zero-footprint DICOM viewer built on **EASI JS**. The browser
 application owns its renderer, loading runtime, cache, interactions and tools.
 It provides a brandable 2D workspace, patient-space reconstruction and explicitly scoped research/integration profiles.
 
-**Version:** 0.1.0-alpha.0. **License:** source available under the
+**Version:** 1.0.0-rc.1. **Publication target:** npm `next`.
+**License:** source available under the
 [EASI View Community License](LICENSE), with a commercial alternative.
 
 ## Run locally
@@ -76,16 +77,23 @@ Give `container` an explicit height and at least 320 pixels of width. Embeds
 start empty unless an initial demo is requested. Scoped styles, focused keyboard
 shortcuts, host events, dynamic branding/colors and explicit cleanup form the
 first integration foundation. See [EMBEDDING.md](docs/EMBEDDING.md) for the complete
-API, configuration, CSP and lifecycle contract. This private alpha SDK ships in
-both static and installable npm archives; it has not been published to a registry.
+API, configuration, CSP and lifecycle contract. This release candidate provides
+static and installable npm archives; its public package target is
+[`@xinonix/easi-view@next`](https://www.npmjs.com/package/@xinonix/easi-view).
 
-For a framework application, install the paired local candidate archives, then
-copy the full verified asset directory into your application's public files:
+EASI JS 1.0.1 is independently available from npm. The public candidate
+installation path is below; copy the full asset directory into your application's
+public files so worker and codec URLs remain adjacent:
 
 ```sh
-npm install ./xinonix-easi-js-1.0.1-corpus.0.tgz ./xinonix-easi-view-0.1.0-alpha.0.tgz
+npm install @xinonix/easi-view@next
 npx easi-view-copy-assets public/easi-view
 ```
+
+For a locally supplied candidate, replace the install command with
+`npm install ./xinonix-easi-view-1.0.0-rc.1.tgz`. Final registry/publication proof
+and archive checksums belong to the matching
+[GitHub release](https://github.com/davidvaccaro/easi-view/releases/tag/v1.0.0-rc.1).
 
 ```js
 // Import from the copied public URL; worker and WASM URLs stay adjacent.
@@ -95,9 +103,9 @@ import { createViewer } from '/easi-view/assets/easi-view.js';
 The copy command requires a new destination and preserves worker, codec,
 stylesheet and license files. TypeScript declarations are also available through
 `@xinonix/easi-view`. See [ARTIFACTS.md](docs/ARTIFACTS.md) for framework paths,
-static hosting, checksums and distribution requirements. The matching EASI JS
-candidate is required until that exact version is available from a registry;
-neither candidate is published by these commands.
+static hosting, checksums and distribution requirements. The independent
+`@xinonix/easi-js@1.0.1` dependency resolves from the registry.
+Packing or installing this local archive does not publish the viewer.
 
 ## Compare studies and navigate large series
 
@@ -151,76 +159,7 @@ geometry rejects rather than creating guessed patient coordinates. Output grids,
 volume allocation and replacement staging are deliberately bounded; see
 [RECONSTRUCTION.md](docs/RECONSTRUCTION.md) for the host API and exact profile.
 
-## Use AI Assist (Preview)
-
-The invited demonstration has a **Sign in to AI** link in AI Assist. AI access
-expires after 30 minutes; refreshing the public viewer does not sign you in.
-Use the link, sign in in its new tab, then return to your original viewer tab
-and retry. Your loaded studies and typed task remain there. Local `localhost`
-and `127.0.0.1` addresses have different cookies; use the link from the viewer
-where you need access. Embedding hosts can opt in with `ai.signInUrl`.
-
-The optional **Tasks** tab turns a reviewed text or voice command into a proposed
-viewer workflow. For example:
-
-- “Show this CT in lung and soft-tissue windows side by side.”
-- “Display an axial MR series with recorded contrast-agent information.”
-- “Pause this ultrasound and show frame 40.”
-
-**New task from study** is the default starting point. It prepares one clean pane
-only when you choose **Run task**, keeping imported studies and measurements.
-Choose **Continue current view** to adjust the actual existing panes and settings.
-It uses the current view, not persistent conversation memory. **New request**
-clears the AI command and review, returns to the study starting point, and preserves
-your imported data and the previous task’s valid Undo. Changing the starting point
-invalidates the old review without changing images or sending another request.
-
-Choose **Plan task**, review the proposed steps and any matching-series choices,
-then choose **Run task**. Selection and execution use the local session catalog;
-the planner receives the command and starting-point mode, without an automatic
-catalog or image upload.
-Conceptual requests such as “Set up this chest CT for routine review,”
-“compare the lowest-energy images with the blended reconstruction,” and “open
-the middle image and prepare an ellipse measurement” resolve against local
-technical evidence. No series-card navigation or internal number is required.
-The optional host setting `ai.workflowPreferences: {routineCt: 'blended'}` can
-resolve ordinary CT ambiguity; the demo enables it, while the SDK defaults to
-`no-preference`. Review identifies the selected reconstruction and evidence.
-This display policy does not establish clinical superiority. Identical requests
-share the same stack across panes. Missing/conflicting criteria and unavailable
-prior studies produce clarification. The active patient/study scope, original
-source checks and calibrated-HU requirements remain enforced.
-
-Ambiguous series require a choice. **Cancel task** stops further steps; **Undo
-last task** restores the previous view while no subsequent manual changes have
-superseded it. Voice is optional: **Record a task** requests microphone access,
-and **Stop and transcribe** sends the recording to the configured speech service.
-Review the transcript before planning. The recording also stops and sends at its
-20-second limit; Cancel discards it.
-
-Applications opt in with `ai: {enabled: true, workflows: true, ...}` and a
-configured host gateway. AI remains disabled in the ordinary build. The OpenAI
-reference gateway uses **`gpt-6.1-sol`** for planning and **`gpt-transcribe`** for
-speech. Provider keys stay server-side. Text commands and sent audio leave the
-device; identifiers spoken or typed into a command are not automatically
-redacted. DICOM files, pixels and source identifiers are not automatically sent.
-
-The **Explain** tab retains **Explain this series** and **Draft a measurement
-summary**, with exact selected-fact previews, streamed unverified drafts and
-viewer-calculated values/units. The assistant does not locate anatomy, infer
-findings, create anatomical measurements or register examinations. Slice links
-work only with compatible geometry. See [task examples and supported actions](docs/AI_WORKFLOWS.md)
-and [AI configuration, data flow and connection troubleshooting](docs/AI_ASSIST.md).
-
-The [invited HTTPS demonstration](https://d3gv6o0ove04h3.cloudfront.net/api/ai/login)
-uses the separately operated [source-checkout gateway](https://github.com/davidvaccaro/easi-view/tree/main/examples/ai-gateway).
-Its invitation is supplied privately. Reload and sign in again after a
-provider/model change. Earlier genuine connection/explanation qualification and
-new workflow/audio qualification are recorded separately in
-[browser validation](docs/BROWSER_VALIDATION.md); a transport check does not
-establish clinical accuracy.
-
-## Display derived objects and AI results
+## Display DICOM derived objects and supplied overlays
 
 Open the source images, then use **Derived Objects** in the inspector to import local SEG masks, reported SR measurements or GSPS presentation states. Masks have visibility, opacity and tint controls. GSPS requires an explicit Apply action. Probes and ROI statistics continue to use original samples; reported SR values remain separate. The SDK provides `importDerived`, `addOverlay`, style controls and versioned JSON import/export. See [DERIVED_OBJECTS.md](docs/DERIVED_OBJECTS.md).
 
@@ -365,7 +304,7 @@ http://localhost:8042/dicom-web/studies/<StudyInstanceUID>/series/<SeriesInstanc
 A series retrieve URL can return multiple instances in a multipart response.
 The archive must allow the viewer origin through CORS and supply a supported
 transfer syntax. This direct URL control omits credentials; use the
-configured archive API for host-managed authentication. The alpha does not
+configured archive API for host-managed authentication. The viewer does not
 accept credentials in URLs. An HTTPS-hosted
 viewer cannot fetch an ordinary HTTP archive because of browser mixed-content
 rules. Use an HTTPS archive or run the viewer locally for local testing.
@@ -419,7 +358,7 @@ response, 10,000 frames per series and 4,096 frames per instance, and at most
 256 MiB per selected instance response. Archive encoded-instance and decoded-frame
 LRUs each retain at most 64 MiB; an oversized active instance is not retained by
 the encoded cache. Parser buffers, metadata, the displayed frame and GPU storage
-are additional allocations. This alpha does not
+are additional allocations. This viewer does not
 claim constant-memory processing of arbitrarily large studies. See the
 [architecture](docs/ARCHITECTURE.md) for contracts, lifecycle and future volume work.
 
@@ -466,8 +405,8 @@ See [CORPUS_TESTING.md](docs/CORPUS_TESTING.md) for coverage, resuming and limit
 The completed large-library baseline checked **23,893 files**: **20,974 passed**,
 **2,907 were reported unsupported**, **12 were labelled invalid**, and there were
 **zero unexpected failures**. These are historical outcomes, not waivers or
-proof that every rejected input is malformed. The current hardening candidate
-fixes undefined-length UN sequence handling in EASI JS and adds bounded classic
+proof that every rejected input is malformed. The historical hardening candidate
+fixed undefined-length UN sequence handling in EASI JS and adds bounded classic
 PET, RF, private Philips CT, JPEG2000 `YBR_FULL` and spatial-only word Secondary
 Capture profiles. All **2,814 affected originals / 2,949 frames** passed
 Node parsing/decoding with unchanged hashes. The final-build browser pilot passed
@@ -489,18 +428,33 @@ completed campaign's frozen-build results; see [STATUS.md](docs/STATUS.md).
 
 ## Scope and roadmap
 
-This is a research alpha with locally installable artifacts. Its format, geometry, rendering, reconstruction and integration support is defined by exact profiles in [STATUS.md](docs/STATUS.md); broader viewer parity and clinical validation remain release gates. Public npm publication has not been performed for EASI View.
+This is an AI-free research viewer release candidate. Its format, geometry,
+rendering, reconstruction and integration support is defined by exact profiles in
+[STATUS.md](docs/STATUS.md). The [v1 release plan](docs/RELEASE_PLAN.md) freezes the
+base scope and remaining acceptance gates; [RELEASING.md](docs/RELEASING.md) describes
+artifact and publication steps. The candidate targets npm `next`; stable 1.0.0 and the `latest` tag remain separate.
+The new-build full-corpus rerun is **running across 23,893 files**, checking all
+logical frames in successful supported sessions. Its reviewed outcome blocks
+stable 1.0.0 and is not yet claimed as a completed pass.
+The project does not claim clinical or regulatory validation.
+
+The AI-free source fingerprint `c335d229eedd333db5afac0f29534a1e93044e68799590b26e6c6c88a3d510ab`
+passed **2,163 automated tests** with no skips, production build/distribution
+checks and **99 native-browser checks**. A separate independent clean SDK
+consumer passed **9 actual-browser checks**, six Node export checks, strict
+TypeScript 5.3.3 compilation and direct/CLI copying of all 46 runtime files.
+These are software/integration checks; exact scopes and historical evidence are
+recorded in [browser qualification](docs/BROWSER_VALIDATION.md).
 
 The [roadmap](docs/ROADMAP.md) records phased exit gates. The
 [interactive competitive catalog](docs/easi-view-plan.html) contains 272 candidate
 features across 21 domains, with original acceptance criteria and primary sources.
 That catalog is a backlog, not a list of implemented capabilities.
 
-The [AI implementation backlog](docs/AI_BACKLOG.md) records the full target AI
-architecture and the implemented **AI Assist (Preview)** slice: reviewed voice/text
-viewer tasks plus technical explanations and selected-measurement drafts through
-a configured host gateway. Imaging inference, third-party plugins and extension
-distribution remain future capabilities.
+AI is deferred from the initial release. The [AI backlog](docs/AI_BACKLOG.md)
+records the completed experimental preview, preservation commit and future
+return gates. AI controls, SDK configuration, model calls, voice input and gateway
+code are absent from this release; supported DICOM derived-result import remains.
 
 This project has its own repository, CI and versioned deployment artifacts.
 See [the artifact setup](docs/ARTIFACTS.md); no sibling EASI checkout is needed.
@@ -518,11 +472,10 @@ redistribution and transition terms.
 Commercial enquiries: [dvaccaro@xinonix.com](mailto:dvaccaro@xinonix.com).
 This model is **source available**, rather than OSI-approved open source.
 
-The hardening candidate pins `@xinonix/easi-js@1.0.1-corpus.0`. A verified source
-archive in `vendor/` supplies that exact independent core package for reproducible
-checkout installs; see [ARTIFACTS.md](docs/ARTIFACTS.md). The build
-includes the pinned JPEG decoder and local WASM codec asset; build/fixture tools
-remain development dependencies. EASI JS and third-party codecs retain
-their separate notices, which the static build includes. Demos and tests are
-generated synthetic data. This local alpha has not been published to npm or
-deployed publicly and does not claim clinical or regulatory validation.
+The viewer pins the independently published `@xinonix/easi-js@1.0.1` package; see
+[ARTIFACTS.md](docs/ARTIFACTS.md). The build includes the pinned JPEG decoder and
+local WASM codec asset; build/fixture tools remain development dependencies.
+EASI JS and third-party codecs retain their separate notices, which the static
+build includes. Public demos and tests use generated synthetic data. Original
+local imaging collections and private validation reports are excluded from
+source and package publication.

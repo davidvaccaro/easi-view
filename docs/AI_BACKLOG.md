@@ -1,21 +1,31 @@
-# AI implementation backlog
+# AI implementation backlog — deferred from v1
 
-Recorded **2026-10-20**, updated **2026-10-22**, for the independent EASI View project.
+Recorded **2026-10-20**, disposition updated **2026-10-22**.
+
+The initial EASI View release is **AI-free**. Its scope is a reliable viewer,
+clear study workflow and stable embedding contract. The implemented AI Preview
+is preserved as an experiment rather than shipped as a disabled hidden feature.
 
 | Planning boundary | Status |
 | --- | --- |
-| Full architecture below | Accepted target direction; implementation backlog |
-| AI Assist (Preview) first-release slice | Implemented Preview increment: reviewed voice/text viewer tasks plus two existing fact-based text tools; qualification/deployment evidence recorded separately |
-| Current runtime | Optional AI connection, closed local workflow broker, short voice transcription and bounded source-bound text assistance; no third-party plugin runtime |
-| Existing foundation | Source-bound masks, annotations, calibrated measurements, restricted derived imports and host integration |
+| Base release | No assistant UI, AI SDK configuration/methods/events, inference, voice or gateway code |
+| Completed AI Preview | Implemented and historically qualified; deferred from the initial release |
+| Preservation branch | [`feature/ai-assist-preview`](https://github.com/davidvaccaro/easi-view/tree/feature/ai-assist-preview) |
+| Immutable checkpoint | [`5142fa1f51e0dd9345fd002c1fbac15d18672f33`](https://github.com/davidvaccaro/easi-view/tree/5142fa1f51e0dd9345fd002c1fbac15d18672f33) |
+| Checkpoint tag | `checkpoint/pre-v1-ai-split-2026-10-22` |
+| Full `EV-AI-*` architecture | Accepted future direction; all broader completion gates remain Planned/open |
+| Retained base foundation | Source-bound annotations, calibrated measurements, supplied masks, DICOM SEG/SR/GSPS and host integration |
 
-All full `EV-AI-*` completion gates below remain **Planned/open**. The narrower
-AI Assist implementation described below partially addresses several of them;
-it does not complete the wider AI platform. This document does not change the
-package version, publish an artifact, promise delivery dates or make the full
-AI platform a prerequisite for the first viewer release.
-The existing [competitive inventory](feature-catalog.json) remains a separate
-272-capability backlog with its original IDs and acceptance criteria.
+The checkpoint includes implementation, tests, source-only gateway examples and
+qualification documentation. Original local imaging collections, credentials,
+private reports and generated deployment archives are not preservation assets
+for Git publication. Existing cloud resources are separate operational assets;
+creating a branch does not disable or delete them.
+
+All full `EV-AI-*` IDs and completion gates below remain intact. The narrower
+Preview partially addresses several targets without completing the platform.
+The [competitive inventory](feature-catalog.json) remains the separate
+272-capability backlog. This document promises no delivery date or AI release.
 
 ## Product objective and architecture
 
@@ -77,72 +87,104 @@ they must not await inference and then blindly call it on the current viewport.
 Current public operational state does not expose arbitrary raw pixels or patient
 metadata. Add explicit scoped access instead of expanding those events incidentally.
 
-## Delivery sequence
+## Future AI delivery sequence
 
 | Phase | Target increment | Exit gate |
 | --- | --- | --- |
-| 1 | Narrow AI Assist (Preview) implementation below | Reviewed voice/text task planning and local actions, plus two guided fact-based actions; genuine provider/audio evidence separate from deterministic fixtures |
+| 1 | Preserved AI Assist Preview, requalified after the base release | Reviewed voice/text task planning and local actions, plus two guided fact-based actions; genuine provider/audio evidence separate from deterministic fixtures |
 | 2 | Broader profile/job/result services, plugin SDK, reference interactive imaging plugin and optional model-runtime adapter | Built-in/reference tools share contracts; source binding, model inputs and review behavior independently qualified |
 | 3 | Curated installation and private enterprise extension catalogs | Permissions, compatibility, isolation, updates, revocation and host deployment policies qualified |
 | 4 | Public marketplace, broader imaging workflows and advanced interchange | Each workflow, distribution feature and DICOM export meets its own exit gate; none is implied by installing a plugin |
 
-Phases 2–4 are future expansion. They are not promised first-release scope.
+All AI phases are deferred from the initial viewer release. The preserved Preview
+is a starting point for a separately approved future milestone.
 
-## First-release slice: AI Assist (Preview)
+## Completed experimental milestone: AI Assist (Preview)
 
-**Status: implemented Preview increment.** An explicit `ai.workflows: true`
-host configuration adds reviewed voice/text task planning and a constrained local
-action broker alongside the two existing guided explanation/measurement actions.
-Short recordings return editable transcripts before planning. Plans are grounded
-against the local session, require series choices where ambiguous, and run only
-after review. Cancel, guarded partial restoration and one-task Undo preserve the
-viewer context. The optional host panel retains bounded request/draft lifecycle
-and source evidence. The separately operated
-[source-checkout demonstration gateway](https://github.com/davidvaccaro/easi-view/tree/main/examples/ai-gateway) supplies genuine model
-connectivity; deterministic qualification is identified separately from actual
-provider checks. [AI_ASSIST.md](AI_ASSIST.md) documents SDK setup and boundaries.
-The full plugin platform, general agent framework and marketplace remain later
-work, and the viewer remains a research alpha.
+**Status: implemented on the preserved branch; deferred from v1.** Historical
+setup guides remain at the immutable checkpoint:
+[AI architecture and gateway](https://github.com/davidvaccaro/easi-view/tree/5142fa1f51e0dd9345fd002c1fbac15d18672f33/docs/AI_ASSIST.md) and
+[workflow examples](https://github.com/davidvaccaro/easi-view/tree/5142fa1f51e0dd9345fd002c1fbac15d18672f33/docs/AI_WORKFLOWS.md).
+These are experiment documentation, not instructions for the AI-free package.
 
-### User experience
+### What was accomplished
 
-1. The host opts into one configured gateway/model. Provider keys remain on
-   that gateway. Tasks is a separate `workflows: true` opt-in; Explain remains
-   available to hosts that only implement the original fact-based endpoints.
-2. In **Tasks**, type a command or choose **Record a task**. Stop and transcribe
-   sends audio to the configured speech service; the 20-second limit also stops
-   and sends it. Cancel discards an unsent recording. Review/edit the transcript.
-3. **Plan task** sends only the reviewed command. A closed plan is validated and
-   matched against local metadata. The model receives no automatic catalog,
-   identifiers, source descriptions, DICOM or pixel context. User-spoken or typed
-   identifiers can still appear in their command; no automatic redaction occurs.
-4. Review proposed steps and choose any ambiguous series, then **Run task**.
-   Existing viewer APIs arrange/select/render images. Cancel stops further work;
-   Undo restores a completed task while later manual changes have not superseded it.
-5. In **Explain**, retain the exact-fact preview and explicit Generate flow for
-   **Explain this series** or **Draft a measurement summary**. Streamed drafts
-   remain unverified and cannot create annotations/findings automatically.
+- Reviewed typed commands and optional short voice recordings produce a closed,
+  versioned proposed action plan. Transcription returns editable text before a
+  separate planning request; no background microphone or automatic invocation.
+- A local broker resolves conceptual CT/MR/US requests against the active patient
+  and study. It uses bounded reconstruction/energy, thickness/kernel,
+  orientation, contrast and derivation evidence, with all-instance agreement.
+  Ambiguous series remain explicit choices rather than arbitrary first matches.
+- Reviewed actions arrange panes, select stacks, apply calibrated CT windows,
+  change frames/cine, request compatible links, activate existing manual tools
+  and return to an existing measurement. Shared pane requests use one source
+  binding. Missing anatomy, prior studies or unsupported geometry do not become
+  guessed clinical findings or registrations.
+- **New task from study** prepares a clean viewing setup only on Run, retaining
+  imported studies and measurements. **Continue current view** extends actual
+  panes without persistent conversation history. **New request** clears only
+  assistant inputs/review and retains a valid previous Undo. Mode changes
+  invalidate review without inference or viewer mutation.
+- Snapshot validation, cancellation, bounded partial rollback and guarded
+  one-task Undo prevent late or stale work from overwriting a newer workspace.
+  Active-pane rebinding and same-source automatic-window restoration were tested.
+- Separate guided tools explain allowlisted technical metadata and draft selected
+  existing-measurement summaries. Viewer-computed facts/units remain authoritative;
+  evidence and numeric checks flag problems without claiming semantic validation.
+- A host-configured gateway supplies actual provider connectivity, server-owned
+  credentials, authentication, bounded sessions/requests and quotas. The final
+  reference uses OpenAI `gpt-6.1-sol` planning and `gpt-transcribe` speech; earlier
+  Bedrock qualification remains separate historical evidence.
+- Commands, sent audio or explicitly reviewed facts leave the device. No automatic
+  catalog, source identifiers, DICOM files or pixels enter planner requests.
+  User-typed/spoken identifiers are not automatically redacted. Local selection
+  and reviewed viewer actions execute on the client.
 
-The OpenAI reference profile uses `gpt-6.1-sol` for planning and `gpt-transcribe`
-for optional speech. Commands and sent audio leave the device. No background
-microphone, general agent runtime, arbitrary code execution or persistent
-conversation is introduced. See [AI_WORKFLOWS.md](AI_WORKFLOWS.md) for reproducible
-synthetic examples and the limits of metadata-driven selection.
+### Historical qualification, not base-release qualification
 
-### Conceptual viewing increment — 2026-10-22
+The completed opening/mode increment at source fingerprint
+`42d84d54783a68b2a2f2f5f2f56248a1631827823f8eee67e1b3fcc9a9e3ca14`
+passed **2,573 automated tests**, production build/distribution checks and **14
+native-browser checks** using generated File API inputs and a deterministic
+local planner. It made ten planning requests and one generated-tone transcription,
+with **zero genuine model calls**. Opening progress, paged Select all, modes,
+Cancel, stale-state handling, voice/busy controls, privacy and Undo were covered.
 
-The current milestone reduces viewer setup and navigation work using conceptual
-commands. It extends the bounded local selection vocabulary with reconstruction
-families, recorded monoenergetic energy, thickness/kernel preferences, shared
-multi-pane source choices and relative stack positions. A host can disclose a
-routine CT display preference. This is viewing workflow assistance; the future
-pixel/region/organ reasoning and automatic clinical analysis contracts remain
-open. The command-only model privacy boundary and explicit Run/Undo are retained.
-See AI_WORKFLOWS.md for supported tasks and independent qualification evidence.
+A separate hosted check on that fixed build passed **9 checks with 3 genuine
+OpenAI planning requests**, using only generated studies and native fetch. It
+verified continuation, active-pane retention during layout reduction, fresh setup
+without reimporting and automatic-window Undo. No original imaging inputs,
+image uploads, captures, foreign browser requests or browser errors were recorded.
+Genuine audio was not repeated for that increment. The earlier two-request attempt
+exposed the Undo defect and remains a partial result rather than a passing gate.
 
-### Implemented first-slice contracts
+Earlier conceptual-selection qualification included **15 generated browser
+checks**, **9 private original-study checks** and **ten genuine synthetic planning
+requests** on its own build. Those counts are separate scopes, not additive proof
+of the final build. Complete historical receipts and reproduction details remain
+in the checkpoint's [browser qualification](https://github.com/davidvaccaro/easi-view/tree/5142fa1f51e0dd9345fd002c1fbac15d18672f33/docs/BROWSER_VALIDATION.md)
+and [supported status](https://github.com/davidvaccaro/easi-view/tree/5142fa1f51e0dd9345fd002c1fbac15d18672f33/docs/STATUS.md).
+No result establishes clinical accuracy, anatomical inference or measured clinical
+productivity. The AI-free release requires new evidence against its own build.
 
-| Slice ID | First-release requirement |
+### Return gates after the base release
+
+1. Establish the base release and a stable, versioned viewer command boundary.
+2. Rebase the preserved experiment selectively, carrying shared fixes once rather
+   than merging obsolete release/SDK configuration wholesale.
+3. Define supported assistance tasks and assess real workflow value. Keep image
+   interpretation and automatic anatomical measurements under separate gates.
+4. Requalify local source binding, permissions, request modes, cancellation,
+   rollback/Undo, voice cleanup, privacy, model errors and provider behavior on
+   the then-current viewer and model versions.
+5. Ship AI as an explicit optional integration with independently documented
+   deployment, data transfer, service costs, support and lifecycle requirements.
+   A third-party plugin runtime and marketplace require their own acceptance gates.
+
+### Preserved Preview contracts (legacy AI-V1 identifiers)
+
+| Slice ID | Implemented experimental requirement |
 | --- | --- |
 | AI-V1-01 | One host/SDK-configured gateway/model profile with one documented completion adapter contract; no multi-provider administration UI |
 | AI-V1-02 | One gateway example/host contract with server-owned provider credentials, host authorization, request allowlisting and a synthetic test operation |
@@ -160,11 +202,11 @@ See AI_WORKFLOWS.md for supported tasks and independent qualification evidence.
 | AI-V1-14 | Optional push-to-talk recording with permission/cancellation cleanup, 20-second/2 MiB browser cap, explicit audio-transfer disclosure and an editable transcript before a separate Plan action |
 
 The limited context/job/draft plumbing should leave room for the full contracts,
-but it need not expose a stable third-party plugin API in the first release.
+and does not establish a stable third-party plugin API.
 This slice partially addresses EV-AI-01/02/03/05/06/07/08/12/18; completing it does
 not complete those broader target items.
 
-### First-release acceptance gates
+### Acceptance gates for a future AI integration
 
 - Disabled or unconfigured AI makes no inference request; opening a study does
   not automatically invoke AI. Ordinary viewing works without the service.
@@ -208,7 +250,7 @@ third-party executable plugins, extension catalogs/marketplace, persistent
 conversations, automatic report/PACS writes and complete DICOM AI-result export.
 These remain target backlog items where applicable, not first-release blockers.
 
-Preview description (qualification and deployment evidence are recorded separately):
+Historical Preview description (not a capability of the v1 package):
 
 > AI Assist (Preview) plans reviewed voice/text viewer tasks, resolves images
 > locally and runs bounded viewing actions after review. It also explains

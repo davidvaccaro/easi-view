@@ -42,11 +42,6 @@ import { instanceNavigation } from '../data/instance-navigation.js';
 import { describeImageStacks } from './image-stack-labels.js';
 import { ImageNoticeState } from './ImageNoticeState.js';
 import { ImageNoticePopover } from './ImageNoticePopover.js';
-import { AiAssistIntegration } from '../integration/AiAssistIntegration.js';
-import { AiSourceBindings } from '../ai/AiSourceBindings.js';
-import { createViewerWorkflow } from '../integration/ViewerWorkflow.js';
-import { JPEG_ALIGNMENT_WARNING } from '../data/encapsulated.js';
-import { JPEG_STORED_PRECISION_WARNING } from '../data/wasm-codecs.js';
 
 const DEMOS = [
   { id: 'ct', modality: 'CT', title: 'CT stack', detail: 'Axial stack · calibrated HU', className: 'ct' },
@@ -76,12 +71,6 @@ const INSPECTOR_TABS = [
 
 function frameColorLabel(frame) { return frame.photometric === 'PALETTE COLOR' ? `Palette color · ${frame.palette?.bits ?? 8}-bit LUT` : 'RGB · 8-bit channels'; }
 
-/** Public host mutations interrupt a task before changing its reviewed view. */
-export function wrapWorkflowMutation(api, broker, name) {
-  const action = api[name];
-  api[name] = (...args) => { broker.interrupt(); return action(...args); };
-}
-
 function markup() {
   return `
     <header class="app-header">
@@ -89,12 +78,11 @@ function markup() {
       <div class="brand" aria-label="EASI View">
         <img class="brand-logo" id="brand-logo" alt="" hidden>
         <span id="brand-name">EASI<span class="brand-light"> View</span></span>
-        <span class="release-tag" id="release-tag">ALPHA</span>
+        <span class="release-tag" id="release-tag">RC 1</span>
       </div>
       <div class="header-divider"></div>
       <div class="workspace-title"><span class="eyebrow">WORKSPACE</span><span id="workspace-name">Synthetic CT</span></div>
       <div class="header-actions">
-        <button class="button" id="header-ai-assist" type="button" aria-label="AI Assist (Preview)" title="AI Assist (Preview)" hidden>AI <span>Assist</span></button>
         <button class="button icon-button mobile-library" id="toggle-library" title="Toggle study library" aria-label="Toggle study library" aria-expanded="false">${icon('library')}</button>
         <button class="button archive-button" id="open-archive" hidden tabindex="-1" title="Browse a DICOMweb archive" aria-label="Browse archive">${icon('link')}<span>Archive</span></button>
         <div class="image-notice-control" id="image-notice-control"></div>
@@ -275,7 +263,7 @@ function markup() {
           </div>
           <div class="inspector-tab-panel" id="inspector-panel-objects" data-inspector-panel="objects" role="tabpanel" aria-labelledby="inspector-tab-objects" tabindex="0" hidden></div>
         </div>
-        <div class="research-note inspector-footer">Research alpha · Local files stay on your device.</div>
+        <div class="research-note inspector-footer">Research use · Local files stay on your device.</div>
       </aside>
     </div>
 
@@ -336,9 +324,7 @@ export function startApp(root, options = {}) {
   const sourceRegistry = new SourceRegistry(options.sources ?? []), localPreview = new LocalOpenSelection();
   const sessionOrigins = new WeakMap(), sessionLoaded = new Map(), savedPatientViews = new Map();
   const sessionDrag = new SessionDragRegistry();
-  let primaryMenu = null, closingSession = null, aiAssist = null;
-  let workflowApi = null, workflowBroker = null;
-  const aiSourceBindings = new AiSourceBindings();
+  let primaryMenu = null, closingSession = null;
   let sessionPanel = null, openWorkflow = null, sessionRevision = 0, sessionDisplayPlan = null, sessionError = '', sessionNavigationRequest = 0, sessionPanelView = null, sessionPanelKey = '';
   const sessionMetadataControllers = new Set();
   let pickerIntent = 'images', pickerGeneration = 0, pendingPickerGeneration = null, configuredSourceSequence = 0;
@@ -526,7 +512,7 @@ export function startApp(root, options = {}) {
   const uiLifetime = new AbortController();
   const annotationDownloads = new Set();
   const unsubscribeAnnotations = annotations.subscribe(() => {
-    ++annotationRevision; selectedStatistics = null; aiAssist?.invalidate();
+    ++annotationRevision; selectedStatistics = null;
     if (!state.disposed) { updateMeasurements(); emit('annotationchange'); }
   });
   const performanceRecorder = new PerformanceRecorder();
@@ -589,98 +575,10 @@ export function startApp(root, options = {}) {
     onClose: () => { ++pickerGeneration; pendingPickerGeneration = null; localPreview.clear(); },
   });
 
-  function aiSeriesKey(series) { return aiSourceBindings.key(series); }
-  function aiContext() {
-    if (state.disposed || state.busy || state.frameBusy || !state.frame || !state.currentSeries || activePane.slot !== workspace.activeSlot) return null;
-    const series = state.currentSeries, descriptor = series.frames[state.renderedIndex];
-    if (!descriptor || descriptor.id !== state.frame.id) return null;
-    const origin = sessionOrigins.get(series), local = localOrigins.get(series);
-    const patientKey = origin ? `session:${origin.patientId}` : local ? `local:${local.patientId}` : aiSeriesKey(series);
-    const binding = aiSourceBindings.bind(series, descriptor);
-    if (!binding) return null;
-    const source = { ...binding, slot: activePane.slot };
-    const notices = [];
-    if (state.frame.geometryWarnings?.length) notices.push('geometry');
-    if (state.frame.timingWarnings?.length) notices.push('timing');
-    // Transmit controlled categories, never free-form source warning text.
-    for (const warning of state.frame.encodingWarnings ?? []) {
-      const category = warning === JPEG_ALIGNMENT_WARNING ? 'jpeg-alignment' : warning === JPEG_STORED_PRECISION_WARNING ? 'jpeg-precision' : 'encoding';
-      if (!notices.includes(category)) notices.push(category);
-    }
-    return { frame: state.frame, sourceBitsStored: descriptor?.bitsStored, sourceBitsAllocated: descriptor?.bitsAllocated,
-      frameCount: series.frames.length, notices, source, patientKey,
-      contextKey: `${source.key}/${source.slot}/${source.index}`, revision: annotationRevision,
-      label: `Pane ${String.fromCharCode(65 + activePane.slot)} · Image ${state.renderedIndex + 1} of ${series.frames.length}`,
-      measurements: frameAnnotations().slice(0, 64).map((annotation, index) => ({
-        id: annotation.id, label: `${({length: 'Distance', angle: 'Angle', rectangle: 'Rectangle ROI', ellipse: 'Ellipse ROI', polygon: 'Polygon ROI'})[annotation.tool] ?? 'Measurement'} ${index + 1}`,
-        measure: () => measureAnnotation(annotation, state.frame),
-      })) };
-  }
-  function aiSourceAvailable(snapshot) {
-    const source = snapshot?.source;
-    if (!source || state.disposed) return false;
-    return Boolean(aiSourceBindings.resolve(source, state.series));
-  }
-  workflowBroker = createViewerWorkflow({
-    workflowPreferences: options.ai?.workflowPreferences,
-    getViewer: () => workflowApi,
-    getCatalog: () => sessionCatalog.getView(), getRoles: () => sessionReading.getState(),
-    getLoaded: () => state.series, getOrigin: series => sessionOrigins.get(series),
-    getStackIndex: (series, origin) => Math.max(0, sessionLoaded.get(origin.seriesId)?.stacks.indexOf(series) ?? 0),
-    getMeasurements: () => annotations.list(), getAnnotationRevision: () => annotationRevision,
-    getFrame: slot => slot === activePane.slot ? state.frame : panes[slot]?.view.frame,
-    getWindowOverride: slot => panes[slot]?.viewport.state.windowOverride === true,
-    restoreTransform(slot, transform) {
-      if (!panes[slot]) throw new Error('The previous pane is no longer available.');
-      panes[slot].viewport.setTransform(transform); drawAllAnnotations(); renderAllOverlays();
-    },
-    selectAnnotation(id) { activePane.annotations.select(id); revealInspectorTab('measurements'); },
-  });
-  aiAssist = new AiAssistIntegration(root, {
-    ...(options.ai?.workflows === true ? { workflow: {
-      getSnapshot(request) {
-        ensureActive();
-        if (state.busy || state.frameBusy && !state.frameRequestIsCine || localImportController || additionController) throw new Error('Finish opening images before planning a task.');
-        return workflowBroker.getSnapshot(request);
-      },
-      preview: (plan, snapshot, choices) => workflowBroker.preview(plan, snapshot, choices),
-      execute: (plan, snapshot, choices, request) => workflowBroker.execute(plan, snapshot, choices, request),
-      undo: () => workflowBroker.undo(), cancel: () => workflowBroker.cancel(),
-      isExecuting: () => workflowBroker.isExecuting(),
-    } } : {}),
-    configuration: options.ai, getContext: aiContext, isSourceAvailable: aiSourceAvailable,
-    async navigateEvidence(snapshot, evidenceId) {
-      if (!aiSourceAvailable(snapshot) || aiContext()?.patientKey !== snapshot.patientKey) return;
-      const resolved = aiSourceBindings.resolve(snapshot.source, state.series);
-      if (!resolved) return;
-      const { series } = resolved;
-      aiAssist.close(); pauseCine();
-      if (!await selectSeries(series) || state.disposed || state.currentSeries !== series
-          || !aiSourceAvailable(snapshot) || aiContext()?.patientKey !== snapshot.patientKey) return;
-      const target = aiSourceBindings.resolve(snapshot.source, state.series);
-      if (!target || !await requestFrame(target.index, { aiEvidence: snapshot.source }) || !aiSourceAvailable(snapshot) || aiContext()?.patientKey !== snapshot.patientKey) return;
-      const measurementId = snapshot.evidence.find(item => item.id === evidenceId)?.measurementId;
-      if (measurementId && frameAnnotations().some(item => item.id === measurementId)) activePane.annotations.select(measurementId);
-    },
-    onChange(detail) {
-      if (state.disposed) return;
-      const voiceTransfer = detail.workflowPhase === 'transcribing', commandTransfer = detail.workflowPhase === 'planning';
-      const transferring = detail.phase === 'generating' || detail.phase === 'testing' || voiceTransfer || commandTransfer;
-      $('privacy-footnote').textContent = transferring ? (voiceTransfer ? 'AI voice transfer active' : commandTransfer ? 'AI command transfer active' : 'AI metadata transfer active') : detail.configured ? 'No analytics · AI on demand' : 'No analytics · No uploads';
-      $('privacy-label').querySelector('span').textContent = transferring ? (voiceTransfer ? 'Recorded voice → gateway' : commandTransfer ? 'Your command → gateway' : 'AI metadata → gateway') : 'Local files stay local';
-      $('privacy-footnote').title = voiceTransfer ? 'Only your explicitly recorded command audio is sent for transcription. Image pixels and the local catalog stay local.' : commandTransfer ? 'Only the command you reviewed is sent for planning. Series matching runs locally.' : transferring ? 'Only the reviewed technical metadata or selected measurement facts are sent. Image pixels stay local.' : '';
-      emit('aichange', detail);
-    },
-  });
-  $('header-ai-assist').hidden = !aiAssist.getState().enabled;
-  $('header-ai-assist').addEventListener('click', () => aiAssist.open(), { signal: uiLifetime.signal });
-  aiAssist.sync();
-
   primaryMenu = new PrimaryMenu(root, {
     toggleButton: $('primary-menu-toggle'),
     onOpen: () => openWorkflow.open(),
     onCloseSession: () => closeSession(),
-    onAiAssist: aiAssist.getState().enabled ? () => aiAssist.open() : undefined,
     onShortcuts: () => $('shortcuts-dialog').showModal(),
     onError: error => { if (!state.disposed && !isAbort(error)) showError(error, 'Unable to finish the session action'); },
     canClose: () => Boolean(sessionCatalog.getView().counts.patients || state.series.length || state.busy || localImportController),
@@ -1043,7 +941,6 @@ export function startApp(root, options = {}) {
       reconstruction: reconstruction?.getState() ?? null,
       derived: derived.getState(),
       specialty: specialty.getState(),
-      ai: aiAssist?.getState() ?? null,
       readingProtocol: getReadingProtocolState(),
       localLibrary: getLocalLibraryState(),
     };
@@ -1378,7 +1275,6 @@ export function startApp(root, options = {}) {
   }
 
   function updateBusy() {
-    if (activePane.slot === workspace.activeSlot) aiAssist?.sync();
     root.classList.toggle('reading-layout-applying', Boolean(readingOperation));
     root.classList.toggle('local-selection-applying', Boolean(localSelectionOperation));
     $('viewport-loading').hidden = Boolean(state.frame) || !(state.busy || state.frameBusy);
@@ -1579,7 +1475,6 @@ export function startApp(root, options = {}) {
   }
 
   function updateDetails() {
-    if (activePane.slot === workspace.activeSlot) aiAssist?.sync();
     const frame = state.frame;
     if (!frame) { updateImageNotices(); return; }
     updateInspector();
@@ -1677,7 +1572,7 @@ export function startApp(root, options = {}) {
     for (const pane of panes) usePane(pane, drawAnnotations);
   }
 
-  async function requestFrame(index, { reset = false, cine = false, aiEvidence = null } = {}) {
+  async function requestFrame(index, { reset = false, cine = false } = {}) {
     if (readingOperation) return false;
     const pane = activePane;
     invalidateSync();
@@ -1705,7 +1600,6 @@ export function startApp(root, options = {}) {
     try {
       const lease = leaseFor(series);
       const onFrame = frame => {
-        if (aiEvidence && !aiSourceBindings.matches(aiEvidence, state.series, series, frame)) throw new Error('The captured AI evidence image changed before display. Select its source evidence again.');
         finishDisplay = beginMeasure(onMeasure, 'display', { signal: controller.signal });
         pane.viewport.setFrame(displayFrame(frame, pane.presentation?.document)); pane.overlay.resize();
         const actualIndex = series.frames.findIndex(descriptor => descriptor.id === frame.id);
@@ -1828,7 +1722,6 @@ export function startApp(root, options = {}) {
 
   async function openSource(loader, type, label, demoId = null, { rejectErrors = false } = {}) {
     if (closingSession) await closingSession;
-    aiAssist?.invalidate();
     rememberSessionView();
     ensureActive();
     await cancelLocalSelection(); ensureActive();
@@ -2090,7 +1983,6 @@ export function startApp(root, options = {}) {
   }
   async function closeSession() {
     ensureActive(); if (closingSession) return closingSession;
-    aiAssist?.invalidate();
     const operation = (async () => {
       beginSessionNavigation(); sessionDrag.clear(); clearSessionDropTargets(); openWorkflow.close(); localPreview.clear();
       cancelLocalImport(); cancelAddition(); state.sourceController?.abort(); ++state.loadToken; ++state.dropToken;
@@ -2313,7 +2205,6 @@ export function startApp(root, options = {}) {
     ensureActive(); const request = beginSessionNavigation();
     if (!sessionCatalog.getPatient(id)) throw new Error('Choose a patient in this session.');
     if (id === sessionReading.patientId) return getSessionState();
-    aiAssist?.invalidate();
     const saved = savedPatientViews.get(id);
     if (saved) return displaySessionPlan(saved, 'Restoring patient workspace…', { request });
     const patient = sessionCatalog.getPatient(id), study = patient.studies[0];
@@ -2361,7 +2252,6 @@ export function startApp(root, options = {}) {
     }), 'Preparing comparison…', { signal, request });
   }
   async function removeSessionPatient(id) {
-    aiAssist?.invalidate();
     ensureActive(); beginSessionNavigation(); cancelLocalImport(); await Promise.allSettled([localImportDone, cancelLocalSelection()]); ensureActive();
     sessionDrag.clear(); const removedPatient = sessionCatalog.getPatient(id);
     const noticeScopes = [...(removedPatient?.studies.map(study => study.id) ?? []),
@@ -2382,7 +2272,6 @@ export function startApp(root, options = {}) {
   }
   async function displaySessionPlan(plan, label, { signal, request = sessionNavigationRequest } = {}) {
     ensureActive();
-    if (plan.patientId !== sessionReading.patientId) aiAssist?.invalidate();
     await cancelLocalSelection(); await cancelReadingProtocol(); await cancelStudyContext(); ensureActive();
     if (state.busy || state.frameBusy || additionController || localImportController) throw new Error('Finish opening the current images before changing the patient workspace.');
     assertSessionNavigation(request, signal); sessionReading.update(sessionCatalog.getView());
@@ -2636,7 +2525,6 @@ export function startApp(root, options = {}) {
     if (request !== localSelectionRequest) throw new DOMException('The local study selection was superseded.', 'AbortError');
     if (state.busy || state.frameBusy || additionController || localImportController) throw new Error('Finish the current source operation before choosing local studies.');
     const plan = makePlan(), controller = new AbortController(), revision = localViewRevision;
-    if (plan.patientId !== localSession.patientId) aiAssist?.invalidate();
     const operation = { controller, label, done: null, committed: false };
     localSelectionOperation = operation; state.busy = true; localLibraryError = ''; updateBusy();
     const previous = snapshotSource(), previousRoles = localSession.getState(), previousLinks = { ...synchronization }, previousHeld = [...workspace.heldFrames], previousArchiveClient = archiveBrowser.client;
@@ -2731,7 +2619,6 @@ export function startApp(root, options = {}) {
   async function selectLocalPatient(id) {
     ensureActive();
     if (id === localSession.patientId) { await cancelLocalSelection(); ensureActive(); return getState(); }
-    aiAssist?.invalidate();
     return displayLocalPlan(() => localSession.planPatient(id), 'Selecting patient…');
   }
   function openLocalSeries(id, options = {}) { return displayLocalPlan(() => localSession.planSeries(id, options), 'Opening selected series…'); }
@@ -2762,7 +2649,6 @@ export function startApp(root, options = {}) {
     return getLocalLibraryState();
   }
   async function clearLocalLibrary() {
-    aiAssist?.invalidate();
     ensureActive(); cancelLocalImport();
     const request = localImportRequest, canceling = cancelLocalSelection(), selection = localSelectionRequest;
     await Promise.allSettled([localImportDone, canceling]); ensureActive();
@@ -2814,7 +2700,6 @@ export function startApp(root, options = {}) {
     const owned = series => origins.get(series)?.sourceType === 'archive' && series._session?.client === client;
     if (!client || ![...state.series, ...borrowedLeases.keys(), ...(state.pendingLoad?.previous.series ?? [])].some(owned) && state.pendingLoad?.type !== 'archive' && !contextOperation) return;
     localSelectionOperation?.controller.abort();
-    aiAssist?.invalidate();
     clearingArchive = true;
     try {
     const readingInterrupted = readingOperation;
@@ -3062,7 +2947,7 @@ export function startApp(root, options = {}) {
     let parsed;
     try { parsed = new URL(url); } catch { showError(new Error('Enter a complete http:// or https:// DICOM instance or WADO-RS URL.'), 'Check the source URL'); return; }
     if (!['http:', 'https:'].includes(parsed.protocol) || parsed.username || parsed.password) {
-      showError(new Error('Use an HTTP(S) URL without embedded credentials. This alpha does not store authentication tokens.'), 'Check the source URL');
+      showError(new Error('Use an HTTP(S) URL without embedded credentials. The standalone viewer does not store authentication tokens.'), 'Check the source URL');
       return;
     }
     openSource((options) => loadUrl(url, options), 'url', 'Remote DICOM');
@@ -3221,7 +3106,7 @@ export function startApp(root, options = {}) {
   $('shortcuts-dialog').addEventListener('click', (event) => { if (event.target === $('shortcuts-dialog')) $('shortcuts-dialog').close(); });
   const keyHandler = (event) => {
     if (event.composedPath?.().includes($('image-notice-control')) || event.target?.closest?.('#image-notice-control')) return;
-    if (aiAssist?.isOpen() || primaryMenu?.isOpen() || localSelectionOperation || openWorkflow?.getState().open || event.target?.closest?.('#local-catalog-panel, #session-library-panel')) return;
+    if (primaryMenu?.isOpen() || localSelectionOperation || openWorkflow?.getState().open || event.target?.closest?.('#local-catalog-panel, #session-library-panel')) return;
     if (readingOperation || readingPanel?.isOpen() || reconstruction?.getState().open || specialty.getState().open) return;
     if (!event.defaultPrevented && event.target?.matches?.('canvas') && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
       event.preventDefault(); event.shiftKey ? annotations.redo() : annotations.undo();
@@ -3306,7 +3191,6 @@ export function startApp(root, options = {}) {
   const dispose = () => {
     if (state.disposed) return;
     state.disposed = true;
-    workflowBroker?.dispose(); aiAssist?.dispose(); aiSourceBindings.dispose();
     ++localImportRequest; localImportController?.abort(); localSelectionOperation?.controller.abort();
     const localCleanup = Promise.allSettled([localImportDone, localSelectionOperation?.done ?? Promise.resolve()]);
     primaryMenu.dispose(); sessionDrag.clear(); openWorkflow.dispose(); localPreview.dispose(); sessionPanel.dispose(); sourceRegistry.dispose();
@@ -3365,9 +3249,6 @@ export function startApp(root, options = {}) {
   window.addEventListener('pageshow', (event) => { if (event.persisted && !state.disposed) { viewport.resize(); drawAnnotations(); } }, { signal: uiLifetime.signal });
   const api = {
     ready, dispose, getState, getPerformance, exportStudyContext, applyStudyContext,
-    openAiAssist: () => { ensureActive(); return aiAssist.open(); },
-    closeAiAssist: () => aiAssist.close(), cancelAiAssist: () => aiAssist.cancel(),
-    getAiState: () => aiAssist.getState(), getAiDraft: () => aiAssist.getDraft(),
     open: path => openWorkflow.open(path), getOpenWorkflowState: () => openWorkflow.getState(),
     getSessionCatalog: () => { ensureActive(); return structuredClone({ ...sessionCatalog.getView(), activePatientId: sessionReading.patientId }); }, getSessionState,
     selectSessionPatient, openSessionStudy, openSessionSeries, openSessionInstance, listSessionInstances, compareSessionStudies, removeSessionPatient, closeSession, clearViewport,
@@ -3475,18 +3356,5 @@ export function startApp(root, options = {}) {
     pause() { ensureActive(); pauseCine(); },
     reset() { ensureActive(); resetView(); },
   };
-  workflowApi = { ...api };
-  for (const name of ['openFiles', 'openUrl', 'openDemo', 'importLocalFiles', 'selectSessionPatient', 'openSessionStudy',
-    'openSessionSeries', 'openSessionInstance', 'compareSessionStudies', 'removeSessionPatient', 'closeSession', 'clearViewport',
-    'selectLocalPatient', 'openLocalStudy', 'openLocalSeries', 'compareLocalStudies', 'clearLocalLibrary', 'associateLocalPatient',
-    'openArchiveSeries', 'addArchiveSeries', 'disconnectArchive', 'applyStudyContext', 'applyReadingProtocol',
-    'setSeries', 'setFrame', 'setLayout', 'setActiveViewport', 'assignViewportSeries', 'setSynchronization',
-    'setWindow', 'setTool', 'play', 'pause', 'reset',
-    'addAnnotation', 'removeAnnotation', 'importAnnotations', 'undoAnnotations', 'redoAnnotations', 'clearAnnotations']) {
-    wrapWorkflowMutation(api, workflowBroker, name);
-  }
-  root.addEventListener('pointerdown', event => {
-    if (workflowBroker.isExecuting() && !event.target.closest('.ai-assist')) workflowBroker.interrupt();
-  }, { capture: true, signal: uiLifetime.signal });
   return api;
 }

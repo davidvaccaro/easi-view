@@ -11,11 +11,15 @@ const viewer = createViewer(container, {
     branding: skins.nova.branding, theme: skins.nova.theme,
     ui: { library: false, demos: false }, initialDemo: 'ct',
 });
-viewer.on('framechange', state => {
-    status.textContent = `${state.modality || 'DICOM'} · Image ${state.frameIndex + 1} of ${state.frameCount} · ${state.image?.columns} × ${state.image?.rows}`;
-});
+const displayStatus = state => {
+    status.textContent = state.image && state.frameCount > 0
+        ? `${state.modality || 'DICOM'} · Image ${state.frameIndex + 1} of ${state.frameCount} · ${state.image.columns} × ${state.image.rows}`
+        : 'Open a study or image.';
+};
+viewer.on('framechange', displayStatus);
+viewer.on('sourcechange', displayStatus);
 viewer.on('error', error => { status.textContent = error.message; });
-viewer.ready.catch(error => { status.textContent = error.message; });
+viewer.ready.then(() => displayStatus(viewer.getState())).catch(error => { status.textContent = error.message; });
 
 document.querySelectorAll('[data-study]').forEach(button => button.addEventListener('click', async () => {
     try {

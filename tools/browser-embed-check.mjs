@@ -164,7 +164,7 @@ await q.mount('a');await q.mount('b');q.initialReady=true;
     await run(`window.__qa.viewer.a.setBranding({name:${quote(unsafeBrand)},logoUrl:'./logo.svg',logoAlt:'Acme logo',showReleaseTag:false});window.__qa.viewer.a.setTheme({accent:'#7aa9ff',panel:'#112233'});return true;`);
     await browser.until("window.__qa.roots.a.getElementById('brand-logo').complete && window.__qa.roots.a.getElementById('brand-logo').naturalWidth===120", 'The local custom logo did not load.');
     await delay(200);
-    left=await snapshot('a');assert.equal(left.brand,unsafeBrand);assert.equal(left.logoHidden,false);assert.equal(left.markHidden,true);assert.equal(left.releaseHidden,true);assert.ok(left.logoWidth<=120);
+    left=await snapshot('a');assert.equal(left.brand,unsafeBrand);assert.equal(left.logoHidden,false);assert.equal(left.markHidden,false);assert.equal(left.releaseHidden,true);assert.ok(left.logoWidth<=120);
     assert.equal(await browser.evaluate("window.__qa.roots.a.getElementById('brand-name').querySelector('b')===null"),true);
     assert.equal(left.accent,'#7aa9ff');assert.equal(left.activeColor,'rgb(122, 169, 255)');
     assert.deepEqual(await browser.evaluate('window.__qa.pixels("a")'),pixelBefore);
