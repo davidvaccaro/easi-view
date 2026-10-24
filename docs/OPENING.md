@@ -212,8 +212,9 @@ is an explicit DICOMweb option only.
 Default matching fields are patient ID/name, accession, study date and modality.
 A host may supply `searchFields` containing `patientBirthDate` or
 `issuerOfPatientId` only when its repository supports those optional matches.
-The standalone local preview includes a named Local Orthanc source and optional
-Connection settings; embedded viewers default to host-managed source configuration.
+The standalone local preview includes named Local Orthanc and Local EASI Store
+DICOMweb/DIMSE sources and optional Connection settings; embedded viewers default
+to host-managed source configuration.
 
 New session APIs:
 
@@ -244,3 +245,50 @@ opening, including `openDemo()`; `ui.demos: false` hides its built-in selector.
 The SDK includes TypeScript declarations. Library events contain operational
 counts and opaque references, not the full session catalog. All viewer resources,
 queries, file references and generated workers are released on disposal.
+
+## Local EASI Store connection
+
+Requires EASI Store **0.2.0** or later with metadata and query/retrieve enabled.
+
+1. Start Store on `127.0.0.1:8048`, DIMSE on `127.0.0.1:4248`, AE `EASISTORE`.
+2. Sign in to Store at `http://127.0.0.1:8048/` in this browser.
+3. Start this viewer with `npm run dev`; open `http://127.0.0.1:5174/`.
+4. Choose **Open… → Open Study → From remote storage**.
+5. Choose **Local EASI Store · DICOMweb** or **Local EASI Store · DIMSE**.
+6. Enter patient ID/name (additional criteria are optional), choose the patient,
+   check the examinations to add, then choose **View study** in the Session library.
+
+The DICOMweb route searches QIDO, reads full nested metadata and retrieves original
+instances lazily. The DIMSE route uses the existing Node gateway to execute actual
+C-FIND and C-GET operations against Store, rather than substituting HTTP archive
+reads. A Store-specific EASI transport adapter discovers the actual SOP classes
+and proposes separate Storage presentation contexts for each supported original
+encoding. It supports native little/big-endian, RLE, JPEG baseline/extended/lossless,
+JPEG-LS and JPEG 2000 encodings, including mixed encodings within a series.
+Discovery is bounded to 10,000 instances / 8 MiB and at most ten distinct SOP
+classes per series within the 128-context association limit. Unsupported syntax
+or requested conversion fails explicitly; Store does not silently transcode. Its series metadata operation currently retrieves the bounded series over
+C-GET (up to 256 MiB), then an opened instance is retrieved again. For large studies,
+DICOMweb metadata and lazy pixel retrieval is more efficient. Neither route changes
+archived originals or bypasses Store authentication.
+
+The local bridge accepts only same-origin loopback GET requests, fixed archive
+routes and a fixed server destination. The existing HttpOnly Store session cookie
+is shared by the same hostname across local ports and forwarded only to Store.
+No write routes, arbitrary destination proxy, persistent browser credentials or
+wildcard CORS are provided. Use `127.0.0.1` consistently; `localhost` has a separate
+cookie namespace. Store restart expires browser sessions; sign in again there.
+A 401 means sign-in is required. A 502 means check that Store and its DIMSE
+listener are running. This bridge is not included in the public browser SDK.
+
+For isolated development servers on different ports:
+
+```sh
+EASI_VIEW_STORE_HTTP_PORT=18048 EASI_VIEW_STORE_DIMSE_PORT=14248 npm run dev
+```
+
+These select fixed loopback ports, not remote targets. Browser-supplied upstream
+headers, cookies unrelated to Store and redirects are not forwarded. To deploy
+elsewhere, configure explicit authenticated sources using the embedding APIs
+above and an application-owned DIMSE gateway; do not expose this development
+server as a production reverse proxy.

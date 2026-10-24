@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — local EASI Store interoperability
+
+Add named DICOMweb and DIMSE sources in the standalone local viewer with a fixed,
+read-only same-origin bridge. Reuse the existing Store HttpOnly session without
+saving credentials or disabling archive authentication. Document patient search,
+study selection, lazy instance viewing and the DIMSE gateway series-memory limit.
+Preserve protected metadata/bulk/frame response URLs across the bridge.
+
+
 ## 1.0.0-rc.1 — AI-free release candidate, 2026-10-22
 
 Prepare the first source-available base-viewer release with a frozen supported

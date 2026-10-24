@@ -1,5 +1,16 @@
 # Supported profile and validation status
 
+## Current development — local EASI Store
+
+The standalone development server now connects to local EASI Store 0.2.0 through
+a fixed authenticated bridge, with named DICOMweb and DIMSE sources. This changes
+the local integration, not the already-published RC artifact. The integrated
+checkout passes **2,174 tests**, its production build and distribution guards;
+actual DICOMweb/DIMSE opening and twelve original-encoding decode paths are
+recorded in [BROWSER_VALIDATION.md](BROWSER_VALIDATION.md). See
+[opening instructions and limits](OPENING.md#local-easi-store-connection).
+
+
 Version **1.0.0-rc.1** is the public AI-free release candidate using the independent
 **EASI JS 1.0.1** core. AI controls, configuration, public SDK endpoints, provider
 adapters and voice workflows are removed from the release line. The accomplished

@@ -4,6 +4,7 @@ import { resolve, sep, extname } from 'node:path';
 import { watch } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { createOrthancProxy } from './orthanc-proxy.mjs';
+import { createEasiStoreProxy } from './easi-store-proxy.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const directory = resolve(root, 'dist');
@@ -22,6 +23,10 @@ if (!production) await rebuild();
 await stat(resolve(directory, 'index.html'));
 const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.svg': 'image/svg+xml', '.txt': 'text/plain; charset=utf-8', '.wasm': 'application/wasm' };
 const orthancProxy = createOrthancProxy();
+const storeHttpPort = Number(process.env.EASI_VIEW_STORE_HTTP_PORT || 8048);
+const storeDimsePort = Number(process.env.EASI_VIEW_STORE_DIMSE_PORT || 4248);
+if (![storeHttpPort, storeDimsePort].every(value => Number.isInteger(value) && value >= 1024 && value <= 65535)) throw new Error('EASI View Store ports must be 1024–65535.');
+const easiStoreProxy = createEasiStoreProxy({ upstream: `http://127.0.0.1:${storeHttpPort}`, association: { host: '127.0.0.1', port: storeDimsePort, calledAeTitle: 'EASISTORE', callingAeTitle: 'EASI_VIEW' } });
 export function requestedPath(requestUrl) {
     let decoded;
     try { decoded = decodeURIComponent(new URL(requestUrl, 'http://localhost').pathname); } catch { return null; }
@@ -45,6 +50,7 @@ const server = createServer(async (request, response) => {
     }
     response.setHeader('Content-Security-Policy', `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'sha256-${styleHash}'; img-src 'self' data: blob:; connect-src 'self' http: https:; worker-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'`);
     if (await orthancProxy(request, response)) return;
+    if (await easiStoreProxy(request, response)) return;
     if (!['GET', 'HEAD'].includes(request.method)) { response.writeHead(405); response.end(); return; }
     if (!target) { response.writeHead(404); response.end(); return; }
     try {

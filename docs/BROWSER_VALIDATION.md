@@ -613,3 +613,22 @@ These are application resource counters on modest generated cases. They are not 
 ## Integrated advanced qualification
 
 The same final source fingerprint passed another **77 synthetic browser groups**: reconstruction 17, derived objects 21, enterprise 15, targeted revocation 8 and specialties 16. These use owned local loopback fixtures and independent quantitative/rendered-pixel references, with no original imaging files, external services or production credentials. Receipts in `artifacts/final-validation` include per-suite/harness hashes and a combined advanced receipt; the portable six-engine receipts are stored alongside them. Together the final build passed 245 browser groups. Advanced groups use the isolated local Chromium driver; the portable six-mode suite qualifies the 2D/runtime/CSP/lifecycle paths across its three engines, not every advanced profile on every native device.
+
+## Local EASI Store Phase 2 — 2026-10-24
+
+Disposable Chrome against an isolated Store 0.2.0 archive containing only a
+12-instance generated CT study verified both named DICOMweb and DIMSE source
+selection, patient search, study admission, image display and navigation to frame
+8 of 12. Successful workflows produced no browser errors or external requests.
+An independent embedded SDK consumer also opened native-frame mode and fetched
+only selected frame resources; Store logout caused both bridges to reject reads
+with 401. These are development integration checks; the published RC is unchanged.
+
+A separate actual Store → authenticated local DIMSE bridge → EASI View source
+check decoded a generated 12-instance mixed-encoding series: native Implicit LE,
+Explicit LE/BE, RLE, JPEG baseline/extended/lossless Process 14/Selection 1,
+JPEG-LS lossless/near-lossless, and JPEG 2000 lossless/lossy. Each image's 256 samples
+were compared against independently generated raster values (exact for lossless;
+explicit tolerance of two for the generated baseline JPEG and lossy JPEG 2000).
+This checks original-encoding retrieval and pixel decoding, not clinical display
+qualification or universal modality conformance.
