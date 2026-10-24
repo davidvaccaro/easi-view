@@ -31,7 +31,7 @@ export class OpenWorkflow {
     #emptyState() {
         return {open: false, step: 'choose', intent: null, sourceId: null, filters: {}, preview: null, patient: null,
             patients: [], studies: [], patientPage: null, studyPage: null, patientOffset: 0, studyOffset: 0,
-            selected: new Map(), error: '', warnings: [], busy: false, status: '', includeSubfolders: true};
+            selected: new Map(), error: '', authentication: null, warnings: [], busy: false, status: '', includeSubfolders: true};
     }
     #node(tag, className, text) {
         const node = this.#document.createElement(tag); if (className) node.className = className; if (text != null) node.textContent = text; return node;
@@ -85,12 +85,27 @@ export class OpenWorkflow {
     #assertActive() { if (this.#disposed) throw new Error('This opening workflow has been disposed.'); }
     #cancelOperation() { this.#generation++; this.#operation?.abort(); this.#operation = null; this.#state.busy = false; this.#state.status = ''; this.#adding = false; this.#blocking = false; this.#renderProgress(); }
     #navigate(step, {clear = false} = {}) {
-        this.#cancelOperation(); this.#state.step = step; this.#state.error = ''; this.#state.warnings = [];
+        this.#cancelOperation(); this.#state.step = step; this.#state.error = ''; this.#state.authentication = null; this.#state.warnings = [];
         if (clear) { this.#state.selected.clear(); this.#state.patient = null; this.#state.patientOffset = 0; this.#state.studyOffset = 0; }
         this.#render(); this.#title.focus();
     }
     #showError(error) {
-        this.#state.error = string(error?.message || error || 'This action could not finish.'); this.#renderMessages();
+        this.#state.authentication = null;
+        this.#state.error = string(error?.message || error || 'This action could not finish.');
+        if (error?.status === 401 && this.#state.sourceId && ['criteria', 'patients', 'studies'].includes(this.#state.step)) {
+            this.#state.error = 'Sign in to this repository, then retry this action. Your search and selection have been kept.';
+            // Recovery links come only from the host application, never a remote
+            // response body, redirect, patient field or search parameter.
+            try {
+                const help = this.#callbacks.getAuthenticationHelp?.(this.#state.sourceId);
+                if (help && typeof help.href === 'string' && /^\/(?!\/)[A-Za-z0-9/_-]+$/.test(help.href) &&
+                    typeof help.label === 'string' && help.label.length <= 100 && !/[\x00-\x1f\x7f]/.test(help.label)) {
+                    this.#state.authentication = {href: help.href, label: help.label};
+                    if (typeof help.message === 'string' && help.message.length <= 500 && !/[\x00-\x1f\x7f]/.test(help.message)) this.#state.error = help.message;
+                }
+            } catch { /* A host recovery callback cannot replace the original error. */ }
+        }
+        this.#renderMessages();
     }
     #paintBeforeWork(signal) {
         const view = this.#document.defaultView;
@@ -113,7 +128,7 @@ export class OpenWorkflow {
     }
     async #run(message, operation, complete, {adding = false} = {}) {
         this.#cancelOperation(); const generation = this.#generation, controller = new AbortController(); this.#operation = controller;
-        this.#state.busy = true; this.#state.error = ''; this.#state.status = message; this.#adding = adding; this.#blocking = true; this.#render();
+        this.#state.busy = true; this.#state.error = ''; this.#state.authentication = null; this.#state.status = message; this.#adding = adding; this.#blocking = true; this.#render();
         this.#cancelButton.focus({preventScroll: true}); this.#dialog.scrollTop = 0;
         try {
             const paint = this.#paintBeforeWork(controller.signal); if (paint) await paint;
@@ -331,7 +346,14 @@ export class OpenWorkflow {
         labels.forEach((label, index) => { const item = this.#node('span', `open-workflow-step${index === current ? ' current' : ''}`, `Step ${index + 1}: ${label}`); if (index === current) item.setAttribute('aria-current', 'step'); this.#steps.append(item); });
     }
     #renderMessages() {
-        this.#notice.textContent = this.#state.error; this.#notice.hidden = !this.#state.error; this.#status.textContent = this.#state.status; this.#status.hidden = !this.#state.status || this.#blocking; this.#dialog.setAttribute('aria-busy', string(this.#state.busy)); this.#renderProgress();
+        this.#notice.textContent = this.#state.error;
+        if (this.#state.authentication) {
+            const link = this.#node('a', 'open-workflow-sign-in', this.#state.authentication.label);
+            link.href = this.#state.authentication.href; link.target = '_blank'; link.rel = 'noopener noreferrer';
+            link.setAttribute('aria-label', `${this.#state.authentication.label} (opens a new tab)`);
+            this.#notice.append(link);
+        }
+        this.#notice.hidden = !this.#state.error; this.#status.textContent = this.#state.status; this.#status.hidden = !this.#state.status || this.#blocking; this.#dialog.setAttribute('aria-busy', string(this.#state.busy)); this.#renderProgress();
     }
     #renderProgress() {
         const blocking = this.#blocking && this.#state.open && this.#state.busy;
@@ -363,7 +385,7 @@ export class OpenWorkflow {
     #renderCriteria() {
         const source = this.#source(); this.#body.append(this.#node('div', 'open-workflow-source-label', source?.name || 'Selected repository'));
         const form = this.#node('form', 'open-workflow-form'); form.dataset.openForm = 'criteria'; const primary = this.#node('div', 'open-workflow-field-grid'), fields = this.#fields();
-        for (const [name, label, type, placeholder] of [['patientId', 'Patient ID / MRN', 'text', 'Identifier in this repository'], ['patientName', 'Patient name', 'text', 'Family name or known name'], ['patientBirthDate', 'Birth date', 'date', '']]) if (fields.includes(name)) this.#field(primary, label, name, type, ['patientBirthDate'].includes(name) ? string(this.#state.filters[name]).replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3') : this.#state.filters[name], placeholder, true);
+        for (const [name, label, type, placeholder] of [['patientId', 'Patient ID / MRN', 'text', 'Identifier in this repository'], ['patientName', 'Patient name', 'text', 'Family name or name prefix'], ['patientBirthDate', 'Birth date', 'date', '']]) if (fields.includes(name)) this.#field(primary, label, name, type, ['patientBirthDate'].includes(name) ? string(this.#state.filters[name]).replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3') : this.#state.filters[name], placeholder, true);
         form.append(primary);
         const secondaryFields = [['issuerOfPatientId', 'Patient ID issuer', 'text'], ['accessionNumber', 'Accession number', 'text'], ['studyDate', 'Study date', 'date'], ['modality', 'Modality', 'text']].filter(([name]) => fields.includes(name));
         if (secondaryFields.length) {

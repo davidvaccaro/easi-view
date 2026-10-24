@@ -4,6 +4,7 @@ import { createServer } from 'node:http';
 import EASI from '@xinonix/easi-js';
 import { createDimseGateway, DIMSE_GATEWAY_LIMITS, dimseMetadata } from '../examples/dimse-gateway/gateway.mjs';
 import { SourceRegistry, SOURCE_SEARCH_FIELDS } from '../src/catalog/SourceRegistry.js';
+import { DimseGatewayClient } from '../src/data/DimseGatewayClient.js';
 import { loadArchiveSeries } from '../src/data/archive-source.js';
 import { createDicomFixture } from '../src/data/synthetic.js';
 
@@ -34,6 +35,33 @@ async function fixture(read = async () => envelope(), extra = {}) {
         get: (path, options = {}) => fetch(`${origin}/dimse${path}`, { ...options, headers: { Authorization: 'Bearer SYNTHETIC', ...options.headers } }),
         close: () => new Promise(resolve => { server.closeAllConnections(); server.close(resolve); }) };
 }
+
+test('DIMSE HTTP failures retain typed status for authentication recovery and cancel unread bodies', async () => {
+    const originalFetch = globalThis.fetch;
+    const client = new DimseGatewayClient({ baseUrl: 'https://synthetic.invalid/dimse' });
+    try {
+        for (const status of [401, 403, 502]) {
+            let canceled = false;
+            globalThis.fetch = async () => new Response(new ReadableStream({
+                start(controller) { controller.enqueue(new TextEncoder().encode('PRIVATE https://secret.invalid?token=SECRET')); },
+                cancel() { canceled = true; }
+            }), { status });
+            await assert.rejects(client.searchStudies(), error => {
+                assert.equal(error.message, `The DIMSE HTTP gateway returned HTTP ${status}.`);
+                assert.equal(error.status, status);
+                assert.doesNotMatch(error.message, /PRIVATE|secret.invalid|SECRET/);
+                return true;
+            });
+            assert.equal(canceled, true);
+        }
+        globalThis.fetch = async () => { throw Object.assign(new Error('PRIVATE https://secret.invalid'), { status: 401 }); };
+        await assert.rejects(client.searchStudies(), error => {
+            assert.equal(error.message, 'The DIMSE HTTP gateway request failed. Check the gateway, authentication, and browser CORS settings.');
+            assert.equal(error.status, undefined);
+            return true;
+        });
+    } finally { globalThis.fetch = originalFetch; }
+});
 
 test('DIMSE registry, HTTP gateway, EASI metadata and archive frames form a usable synthetic viewing pipeline', async () => {
     const f = await fixture();

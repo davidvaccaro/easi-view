@@ -138,7 +138,12 @@ export class SourceRegistry {
         if (!Object.entries(filters).some(([key, value]) => key !== 'issuerOfPatientId' && value.replace(/[*?\s\\-]/gu, '').length)) {
             throw new Error('Enter patient criteria before searching this repository.');
         }
-        return filters;
+        // Patient discovery accepts an ordinary family-name prefix. Keep
+        // explicit DICOM matching expressions intact; selected-patient queries
+        // below still use exact identifiers and verify returned demographics.
+        const name = filters.patientName?.trim();
+        return name && name.length < 256 && !/[*?^=\\]/u.test(name)
+            ? { ...filters, patientName: `${name}*` } : filters;
     }
 
     #options(options) {

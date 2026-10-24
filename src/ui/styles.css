@@ -894,3 +894,6 @@
 .session-library-instance-badges { display: inline-flex; flex-wrap: wrap; justify-content: flex-end; gap: 3px; }
 .session-library-instance-pane-badge { color: var(--accent); border: 1px solid var(--accent-border); border-radius: 3px; font: 7px var(--mono); padding: 2px 3px; white-space: nowrap; }
 .session-library-instance[aria-pressed="true"] { border-color: var(--accent-border); background: var(--accent-surface); }
+
+.open-workflow-sign-in { display: block; width: fit-content; margin-top: 10px; color: var(--accent); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.open-workflow-sign-in:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 2px; }

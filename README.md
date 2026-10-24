@@ -56,20 +56,26 @@ must serve `.js` as JavaScript, `.wasm` as `application/wasm`, and preserve the 
 
 ## Connect the local viewer to EASI Store
 
-With EASI Store 0.2.0 running, first sign in at **http://127.0.0.1:8048/**.
-Then open **http://127.0.0.1:5174/** and choose **Open… → Open Study →
-From remote storage**. Select **Local EASI Store · DICOMweb** or **Local EASI
-Store · DIMSE**, search for a patient, choose studies, then choose **View study**.
-Images load as you browse them. Both sources use the same archive through their
-respective protocols.
+Open **http://127.0.0.1:5174/** and choose **Open… → Open Study → From remote
+storage**. Select **Local EASI Store · DICOMweb** or **Local EASI Store · DIMSE**,
+search for a patient, choose studies, then choose **View study**. A family-name
+prefix is sufficient: `Synthetic` finds `SYNTHETIC^PATIENT`.
 
-The local development server supplies a fixed, read-only bridge. It forwards
-only your existing Store session to that local Store; it saves no credentials
-in the viewer. Use `127.0.0.1` for both applications, and sign in again after a
-Store restart. DIMSE uses AE `EASISTORE` on port `4248`. See
+EASI Store **0.2.1** offers two explicit client-access profiles. In **Local
+research**, local DICOMweb and DIMSE clients need no browser login. An
+administrator enables it under **Administration → Client access**, or starts
+Store with `--access-profile local-research`. Both listeners must bind to loopback.
+In **Authenticated clients**, DICOMweb requires a session or a configured client
+Bearer token. For the built-in local bridge, sign in at
+**http://127.0.0.1:8048/** using the same hostname as View. If that session expires,
+the opening dialog offers a sign-in link while retaining your search and checked
+studies; return and retry explicitly. Store administration stays protected in both
+profiles, and DIMSE uses its separate calling-AE/IP trust policy.
+
+The local development server supplies a fixed, read-only bridge and saves no
+credentials in the viewer. DIMSE defaults to AE `EASISTORE`, port `4248`. See
 [local Store setup and limits](docs/OPENING.md#local-easi-store-connection).
-This convenience bridge is for local development; deployed integrations use
-host-configured authentication and gateways.
+Deployed integrations use host-configured authentication and gateways.
 
 ## Embed in your product
 

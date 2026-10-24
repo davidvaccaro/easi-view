@@ -562,6 +562,7 @@ export function startApp(root, options = {}) {
   });
   openWorkflow = new OpenWorkflow(root, {
     getSources: () => sourceRegistry.list(),
+    getAuthenticationHelp: id => options.getAuthenticationHelp?.(id),
     getPolicy: () => ({ ...openingPolicy, tests: openingPolicy.tests && root.dataset.uiDemos !== 'false' }),
     onPickFiles: intent => { pickerIntent = intent; pendingPickerGeneration = pickerGeneration; $('file-input').click(); },
     onPickFolder: intent => { pickerIntent = intent; pendingPickerGeneration = pickerGeneration; $('folder-input').click(); },
@@ -2137,7 +2138,7 @@ export function startApp(root, options = {}) {
     refreshSessionCatalog();
     if (!sessionReading.patientId || sessionCatalog.getPatient(sessionReading.patientId)?.synthetic || admitted.patientId !== sessionReading.patientId) {
       try { await openSessionStudy(admitted.studyIds[0], { signal: request.signal }); }
-      catch (error) { if (isAbort(error)) throw error; sessionError = error.message; updateSessionLibrary(); }
+      catch (error) { if (isAbort(error)) throw error; sessionError = error.message; updateSessionLibrary(); if (error?.status === 401) throw error; }
     }
     status(`${admitted.studyIds.length} selected studies added to the session`); emit('librarychange', getSessionState()); return getSessionState();
   }

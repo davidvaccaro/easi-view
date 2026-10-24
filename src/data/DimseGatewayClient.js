@@ -15,8 +15,9 @@ export class DimseGatewayClient extends DicomWebClient {
         try { return await super.request(path, options); }
         catch (error) {
             if (error?.name === 'AbortError') throw error;
-            const status = /returned HTTP (\d{3})\./.exec(error?.message ?? '');
-            if (status) throw new Error(`The DIMSE HTTP gateway returned HTTP ${status[1]}.`);
+            if (Number.isInteger(error?.status) && error.status >= 100 && error.status <= 599) {
+                throw Object.assign(new Error(`The DIMSE HTTP gateway returned HTTP ${error.status}.`), { status: error.status });
+            }
             if (/request failed|host could not provide/.test(error?.message ?? '')) {
                 throw new Error('The DIMSE HTTP gateway request failed. Check the gateway, authentication, and browser CORS settings.');
             }

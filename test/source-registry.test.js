@@ -71,6 +71,62 @@ test('patient candidates group matching study evidence while retaining raw serve
     });
 });
 
+test('patient discovery finds a full DICOM person name from a plain family-name prefix over DICOMweb and DIMSE', async () => {
+    for (const type of ['dicomweb', 'dimse']) {
+        let requested;
+        await withFetch(async url => {
+            requested = new URL(url);
+            // This archive performs DICOM wildcard matching against the actual
+            // encoded PN; an unadorned family name does not match its full PN.
+            const expression = requested.searchParams.get('PatientName')
+                ?.replace(/[.+^${}()|[\]\\]/gu, '\\$&').replaceAll('*', '.*').replaceAll('?', '.');
+            return json(!expression || new RegExp(`^${expression}$`, 'u').test('SYNTHETIC^PATIENT') ? [study(1)] : []);
+        }, async () => {
+            const registry = new SourceRegistry([source('research', { type, searchFields: [...SOURCE_SEARCH_FIELDS] })]);
+            const filters = Object.freeze({patientName: 'SYNTHETIC', patientId: 'SYNTH-1',
+                patientBirthDate: '20000101', issuerOfPatientId: 'SYNTHETIC-HOSPITAL',
+                accessionNumber: 'SYNTHETIC-ACCESSION', studyDate: '20261019', modality: 'CT'});
+            try {
+                const found = await registry.searchPatients('research', filters);
+                assert.equal(found.items.length, 1);
+                assert.equal(found.items[0].patientName, 'SYNTHETIC PATIENT');
+                assert.equal(requested.searchParams.get('PatientName'), 'SYNTHETIC*');
+                for (const [query, field] of [['PatientID', 'patientId'], ['PatientBirthDate', 'patientBirthDate'],
+                    ['IssuerOfPatientID', 'issuerOfPatientId'], ['AccessionNumber', 'accessionNumber'],
+                    ['StudyDate', 'studyDate'], ['ModalitiesInStudy', 'modality']]) {
+                    assert.equal(requested.searchParams.get(query), filters[field]);
+                }
+                assert.equal(filters.patientName, 'SYNTHETIC', 'discovery never mutates the retained criteria');
+                await registry.listPatientStudies('research', found.items[0]);
+                assert.equal(requested.searchParams.has('PatientName'), false);
+                assert.equal(requested.searchParams.get('PatientID'), 'SYNTH-1');
+            } finally { registry.dispose(); }
+        });
+    }
+});
+
+test('patient discovery preserves explicit wildcard and structured PN expressions without exceeding query bounds', async () => {
+    for (const type of ['dicomweb', 'dimse']) {
+        const requested = [];
+        await withFetch(async url => { requested.push(new URL(url).searchParams.get('PatientName')); return json([]); }, async () => {
+            const registry = new SourceRegistry([source('research', { type })]);
+            const expressions = ['SYNTH*', 'SYNTH?TIC', 'SYNTHETIC^PATIENT', 'SYNTHETIC^',
+                'SYNTHETIC=合成', 'SYNTHETIC\\OTHER', 'S'.repeat(256)];
+            try {
+                for (const patientName of expressions) await registry.searchPatients('research', {patientName});
+                assert.deepEqual(requested, expressions);
+                await registry.searchPatients('research', {patientName: '合成'});
+                assert.equal(requested.at(-1), '合成*');
+                await registry.searchPatients('research', {patientName: '  Synthetic Family  '});
+                assert.equal(requested.at(-1), 'Synthetic Family*');
+                await registry.searchPatients('research', {patientName: 'S'.repeat(255)});
+                assert.equal(requested.at(-1).length, 256);
+                assert.equal(requested.at(-1).endsWith('*'), true);
+            } finally { registry.dispose(); }
+        });
+    }
+});
+
 test('selecting a patient starts a new exact study search without initial modality/date/accession filters', async () => {
     const urls = [];
     await withFetch(async url => { urls.push(new URL(url)); return json([study(urls.length)]); }, async () => {

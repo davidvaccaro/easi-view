@@ -284,7 +284,7 @@ export class DicomWebClient {
         if (signal?.aborted) { await response.body?.cancel().catch(() => {}); checkAbort(signal); }
         if (!response.ok) {
             await response.body?.cancel().catch(() => {});
-            throw new Error(`The DICOMweb archive returned HTTP ${response.status}.`);
+            throw Object.assign(new Error(`The DICOMweb archive returned HTTP ${response.status}.`), { status: response.status });
         }
         return response;
     }

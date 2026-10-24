@@ -360,3 +360,65 @@ test('an explicitly refreshed remote page removes a newly unavailable checked st
         assert.deepEqual(requests, [0, 25, 0]); assert.deepEqual(f.workflow.getState().selectedStudyIds, []); assert.equal(bulk(f).disabled, true); assert.equal(actions(f.root, 'add')[0].disabled, true);
     } finally { f.cleanup(); }
 });
+
+test('expired local Store sessions offer sign-in without losing criteria and require an explicit search retry', async () => {
+    const { localStoreAuthenticationHelp } = await import('../src/integration/local-store-authentication.js');
+    for (const id of ['easi-store-web', 'easi-store-dimse']) {
+        const requests = []; let signedIn = false;
+        const f = fixture({getAuthenticationHelp: localStoreAuthenticationHelp, onSearchRemote: async (source, filters) => {
+            requests.push({source, filters});
+            if (!signedIn) throw Object.assign(new Error('The archive returned HTTP 401.'), {status: 401});
+            return {items: [patient('a')]};
+        }}); f.sources[0].id = id;
+        try {
+            f.workflow.open('study'); f.click('remote'); f.click('source'); input(f, 'patientName', 'Synthetic*');
+            const submit = () => event(f.root, walk(f.root).find(node => node.dataset.openForm === 'criteria'), 'submit');
+            submit(); await tick();
+            assert.equal(f.workflow.getState().step, 'criteria'); assert.match(f.workflow.getState().error, /session is missing or has expired/);
+            assert.equal(fields(f.root).find(node => node.dataset.openFilter === 'patientName').value, 'Synthetic*');
+            const link = byClass(f.root, 'open-workflow-sign-in'); assert.ok(link);
+            assert.equal(link.href, '/easi-store/sign-in'); assert.equal(link.target, '_blank'); assert.equal(link.rel, 'noopener noreferrer');
+            assert.equal(requests.length, 1, 'offering sign-in never repeats a patient request');
+            signedIn = true; await tick(); assert.equal(requests.length, 1, 'sign-in does not automatically replay an action');
+            submit(); await tick(); assert.equal(f.workflow.getState().step, 'patients');
+            assert.equal(requests.length, 2); assert.deepEqual(requests[1], requests[0]);
+            assert.equal(byClass(f.root, 'open-workflow-sign-in'), undefined);
+        } finally { f.cleanup(); }
+    }
+});
+
+test('authentication failure during admission preserves checked studies and never commits again without Add', async () => {
+    const { localStoreAuthenticationHelp } = await import('../src/integration/local-store-authentication.js');
+    let commits = 0;
+    const f = fixture({getAuthenticationHelp: localStoreAuthenticationHelp, onSearchRemote: async () => ({items: [patient('a')]}),
+        onListRemoteStudies: async () => ({items: [study('one'), study('two')]}), onCommitRemote: async () => {
+            if (++commits === 1) throw Object.assign(new Error('HTTP 401'), {status: 401});
+        }}); f.sources[0].id = 'easi-store-web';
+    try {
+        await remotePatient(f); f.click('patient'); await tick(); checkStudy(f, 'one'); checkStudy(f, 'two'); f.click('add'); await tick();
+        assert.equal(f.workflow.getState().step, 'studies'); assert.deepEqual(f.workflow.getState().selectedStudyIds, ['one', 'two']);
+        assert.ok(byClass(f.root, 'open-workflow-sign-in')); assert.equal(commits, 1);
+        await tick(); assert.equal(commits, 1); f.click('add'); await tick(); assert.equal(commits, 2); assert.equal(f.workflow.getState().open, false);
+    } finally { f.cleanup(); }
+});
+
+test('unrelated sources, non-auth failures and unsafe host links never show a Store sign-in action', async () => {
+    const { localStoreAuthenticationHelp } = await import('../src/integration/local-store-authentication.js');
+    const cases = [{id: 'orthanc', status: 401}, {id: 'easi-store-web', status: 403}, {id: 'easi-store-dimse', status: 502},
+        ...['javascript:alert(1)', '//foreign.invalid/login', '/signin?PatientID=SYNTHETIC', '/signin#secret', '/bad\\path'].map(href => ({id: 'easi-store-web', status: 401, href}))];
+    for (const value of cases) {
+        const f = fixture({getAuthenticationHelp: value.href ? () => ({href: value.href, label: 'Unsafe'}) : localStoreAuthenticationHelp,
+            onSearchRemote: async () => { throw Object.assign(new Error(`HTTP ${value.status}`), {status: value.status}); }}); f.sources[0].id = value.id;
+        try { await remotePatient(f); assert.equal(byClass(f.root, 'open-workflow-sign-in'), undefined); if (value.status === 401) assert.match(f.workflow.getState().error, /Sign in to this repository/); }
+        finally { f.cleanup(); }
+    }
+});
+
+test('source changes and close/reopen clear sign-in guidance', async () => {
+    const { localStoreAuthenticationHelp } = await import('../src/integration/local-store-authentication.js');
+    const f = fixture({getAuthenticationHelp: localStoreAuthenticationHelp, onSearchRemote: async () => { throw Object.assign(new Error('HTTP 401'), {status: 401}); }}); f.sources[0].id = 'easi-store-web';
+    try {
+        await remotePatient(f); assert.ok(byClass(f.root, 'open-workflow-sign-in')); f.click('back'); assert.equal(byClass(f.root, 'open-workflow-sign-in'), undefined);
+        f.workflow.close(); f.workflow.open('study'); assert.equal(byClass(f.root, 'open-workflow-sign-in'), undefined); assert.equal(f.workflow.getState().error, '');
+    } finally { f.cleanup(); }
+});

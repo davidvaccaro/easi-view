@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — research access and patient-name search
+
+Use Store 0.2.1's explicit local research policy for cookie-free local DICOMweb
+and DIMSE viewing. Keep authenticated mode and protected administration intact.
+Search ordinary patient names as prefixes during patient discovery while
+preserving explicit DICOM expressions and exact identifiers. Expired sessions
+show a safe sign-in action, retaining criteria and checked studies for explicit
+retry, including expiry during initial admission.
+
 ## Unreleased — local EASI Store interoperability
 
 Add named DICOMweb and DIMSE sources in the standalone local viewer with a fixed,

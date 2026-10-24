@@ -632,3 +632,19 @@ were compared against independently generated raster values (exact for lossless;
 explicit tolerance of two for the generated baseline JPEG and lossy JPEG 2000).
 This checks original-encoding retrieval and pixel decoding, not clinical display
 qualification or universal modality conformance.
+
+## Client access and search recovery — 2026-10-24
+
+A disposable browser verified both local DICOMweb and DIMSE searches using the
+plain name `Synthetic`, without cookies, credentials or an administrator session,
+against Store 0.2.1 in local research mode. Both paths opened the generated study
+and sought frame 8 of 12. Switching Store back to authenticated mode immediately
+made both unauthenticated bridge paths return 401.
+
+In authenticated mode, a physical sign-in-link click opened the correct Store
+host/port for both `127.0.0.1` and `localhost`. Login in that separate tab preserved
+the original criteria and explicit search retry succeeded. Expiring a session
+between study selection and Add kept the checked studies/dialog; explicit Add
+retry displayed the image with one admitted study and no duplicate. Successful
+flows generated no runtime exceptions or external requests. Full checks pass
+2,184 tests plus build/distribution verification.

@@ -28,7 +28,7 @@ test('Store proxy is fixed loopback/read-only and requires explicit local creden
     assert.equal((await fetch(base + '/easi-store/api/v1/instances', { headers: credentials })).status, 404);
     assert.equal((await fetch(base + '/easi-store/dicomweb/studies/1%2F2/series', { headers: credentials })).status, 404);
     const hostile = await new Promise(resolve => { const req = request(base + '/easi-store/dicomweb/studies', { headers: { ...credentials, Host: 'attacker.invalid' } }, res => { res.resume(); resolve(res.statusCode); }); req.end(); });
-    assert.equal(hostile, 403); assert.equal(received.length, 0);
+    assert.equal(hostile, 403); assert.equal(received.length, 1); assert.equal(received[0].path, '/api/v1/access');
 });
 
 test('Store proxy preserves searches and originals, strips unrelated credentials and cookies', async t => {
@@ -58,7 +58,7 @@ test('metadata bulk URIs stay within authenticated proxy while clinical attribut
 
 test('DIMSE bridge checks Store identity per request before invoking its fixed gateway', async t => {
     let authenticated = true, called = 0;
-    const { base, received } = await fixture(t, (req, res) => { assert.equal(req.url, '/api/v1/session'); res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify({ authenticated, setupRequired: false })); }, {
+    const { base, received } = await fixture(t, (req, res) => { assert.ok(['/api/v1/session','/api/v1/access'].includes(req.url)); res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(req.url.endsWith('/access') ? {profile:'authenticated',dicomwebAuthenticationRequired:true} : { authenticated, setupRequired: false })); }, {
         dimseFactory: options => {
             assert.equal(options.association.calledAeTitle, 'EASISTORE'); assert.equal(options.association.port, 4248);
             return async (req, res) => { assert.equal(req.url, '/dimse/studies?PatientID=synthetic'); assert.equal(await options.authorize(), true); called++; metadata(res, []); };
@@ -68,7 +68,7 @@ test('DIMSE bridge checks Store identity per request before invoking its fixed g
     assert.equal((await fetch(url, { headers: credentials })).status, 200); assert.equal(called, 1);
     authenticated = false;
     assert.equal((await fetch(url, { headers: credentials })).status, 401); assert.equal(called, 1);
-    assert.equal(received.length, 2);
+    assert.equal(received.length, 3);
 });
 
 test('redirects cannot forward Store credentials to another target and failures are sanitized', async t => {
@@ -96,4 +96,42 @@ test('the local bridge rejects excess active reads and releases capacity when a 
     controller.abort(); await first;
     await new Promise(resolve=>setTimeout(resolve,30)); release();
     assert.equal((await fetch(base + '/easi-store/dicomweb/studies', {headers:credentials})).status,200);
+});
+
+test('sign-in navigation keeps the viewer hostname and fixed configured Store port without forwarding criteria', async t => {
+    const {base, upstream, received} = await fixture(t, (_req, res) => metadata(res, []));
+    let response = await fetch(base + '/easi-store/sign-in', {redirect: 'manual'});
+    assert.equal(response.status, 303); assert.equal(response.headers.get('location'), upstream + '/');
+    const localUrl = new URL(base); localUrl.hostname = 'localhost';
+    const localResult = await new Promise((resolve,reject) => {
+        const req = request(base + '/easi-store/sign-in', {headers: {Host: localUrl.host}}, res => {res.resume();resolve({status:res.statusCode,location:res.headers.location});}); req.on('error',reject);req.end();
+    });
+    const expected = new URL(upstream); expected.hostname = 'localhost';
+    assert.equal(localResult.status,303); assert.equal(localResult.location,expected.href);
+    assert.equal((await fetch(base + '/easi-store/sign-in?PatientName=SYNTHETIC', {redirect:'manual'})).status,404);
+    assert.equal((await fetch(base + '/easi-store/sign-in',{method:'POST',redirect:'manual'})).status,405);
+    assert.equal((await fetch(base + '/easi-store/sign-in',{headers:{Origin:'https://foreign.invalid'},redirect:'manual'})).status,403);
+    assert.equal(received.length,0,'sign-in navigation reads no archive data or session');
+});
+
+test('explicit local-research policy permits cookie-free DICOMweb and DIMSE, then locks immediately when changed', async t => {
+    let research = true, dimseCalls = 0;
+    const {base,received} = await fixture(t,(req,res)=>{
+        if(req.url==='/api/v1/access') return metadata(res,{profile:research?'local-research':'authenticated',dicomwebAuthenticationRequired:!research});
+        assert.equal(req.url,'/dicomweb/studies?PatientName=SYNTHETIC*'); assert.equal(req.headers.cookie,undefined); metadata(res,[]);
+    },{dimseFactory:()=>async(_req,res)=>{dimseCalls++;metadata(res,[])}});
+    assert.equal((await fetch(base+'/easi-store/dicomweb/studies?PatientName=SYNTHETIC*')).status,200);
+    assert.equal((await fetch(base+'/easi-store/dimse/studies?PatientName=SYNTHETIC*')).status,200);assert.equal(dimseCalls,1);
+    research=false;
+    assert.equal((await fetch(base+'/easi-store/dicomweb/studies?PatientName=SYNTHETIC*')).status,401);
+    assert.equal((await fetch(base+'/easi-store/dimse/studies?PatientName=SYNTHETIC*')).status,401);assert.equal(dimseCalls,1);
+    assert.equal(received.filter(item=>item.path.startsWith('/dicomweb/')).length,1);
+});
+
+test('missing, malformed or inconsistent access policy cannot enable anonymous archive requests', async t => {
+    for(const policy of [{},{profile:'authenticated',dicomwebAuthenticationRequired:false},{profile:'local-research',dicomwebAuthenticationRequired:'false'}]) {
+        const {base,received}=await fixture(t,(_req,res)=>metadata(res,policy));
+        assert.equal((await fetch(base+'/easi-store/dicomweb/studies')).status,401);
+        assert.equal(received.length,1);assert.equal(received[0].path,'/api/v1/access');
+    }
 });

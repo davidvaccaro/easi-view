@@ -350,13 +350,23 @@ test('aborting a pending metadata stream cancels the underlying reader and relea
 });
 
 test('HTTP failures cancel unread bodies and reveal only status, never body details or URLs', async () => {
-    let canceled = false;
-    await withFetch(async () => new Response(new ReadableStream({ cancel() { canceled = true; } }), { status: 401 }), async () => {
-        await assert.rejects(client().searchStudies(), error => error.message === 'The DICOMweb archive returned HTTP 401.');
-        assert.equal(canceled, true);
-    });
-    await withFetch(async () => { throw new Error('SECRET https://archive.invalid?token=SYNTH'); }, async () => {
-        await assert.rejects(client().searchStudies(), error => !/SECRET|archive.invalid|SYNTH/.test(error.message));
+    for (const status of [401, 403, 502]) {
+        let canceled = false;
+        await withFetch(async () => new Response(new ReadableStream({ cancel() { canceled = true; } }), { status }), async () => {
+            await assert.rejects(client().searchStudies(), error => {
+                assert.equal(error.message, `The DICOMweb archive returned HTTP ${status}.`);
+                assert.equal(error.status, status);
+                return true;
+            });
+            assert.equal(canceled, true);
+        });
+    }
+    await withFetch(async () => { throw Object.assign(new Error('SECRET https://archive.invalid?token=SYNTH'), { status: 401 }); }, async () => {
+        await assert.rejects(client().searchStudies(), error => {
+            assert.doesNotMatch(error.message, /SECRET|archive.invalid|SYNTH/);
+            assert.equal(error.status, undefined);
+            return true;
+        });
     });
 });
 

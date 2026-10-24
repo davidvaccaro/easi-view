@@ -251,11 +251,15 @@ queries, file references and generated workers are released on disposal.
 Requires EASI Store **0.2.0** or later with metadata and query/retrieve enabled.
 
 1. Start Store on `127.0.0.1:8048`, DIMSE on `127.0.0.1:4248`, AE `EASISTORE`.
-2. Sign in to Store at `http://127.0.0.1:8048/` in this browser.
+2. Choose the Store access profile. Store 0.2.1 **Local research** needs no client
+   sign-in and is restricted to loopback listeners; an administrator enables it
+   under **Administration → Client access** or via `--access-profile local-research`.
+   In **Authenticated clients**, sign in to Store in this browser or supply an
+   application-managed Bearer credential. Management always requires sign-in.
 3. Start this viewer with `npm run dev`; open `http://127.0.0.1:5174/`.
 4. Choose **Open… → Open Study → From remote storage**.
 5. Choose **Local EASI Store · DICOMweb** or **Local EASI Store · DIMSE**.
-6. Enter patient ID/name (additional criteria are optional), choose the patient,
+6. Enter patient ID/name (a plain name searches by prefix; additional criteria are optional), choose the patient,
    check the examinations to add, then choose **View study** in the Session library.
 
 The DICOMweb route searches QIDO, reads full nested metadata and retrieves original
@@ -277,8 +281,12 @@ routes and a fixed server destination. The existing HttpOnly Store session cooki
 is shared by the same hostname across local ports and forwarded only to Store.
 No write routes, arbitrary destination proxy, persistent browser credentials or
 wildcard CORS are provided. Use `127.0.0.1` consistently; `localhost` has a separate
-cookie namespace. Store restart expires browser sessions; sign in again there.
-A 401 means sign-in is required. A 502 means check that Store and its DIMSE
+cookie namespace. Store restart expires browser sessions in authenticated mode. A 401 shows a
+**Sign in to EASI Store** link; it opens Store using the viewer's hostname and the
+configured Store port. Your search and checked studies stay in place. Return and
+retry the existing search or Add action. Local research access does not depend on
+those browser sessions. Explicit wildcard/name-component expressions are sent
+unchanged, and patient IDs plus selected-patient lookups remain exact. A 502 means check that Store and its DIMSE
 listener are running. This bridge is not included in the public browser SDK.
 
 For isolated development servers on different ports:
@@ -292,3 +300,10 @@ headers, cookies unrelated to Store and redirects are not forwarded. To deploy
 elsewhere, configure explicit authenticated sources using the embedding APIs
 above and an application-owned DIMSE gateway; do not expose this development
 server as a production reverse proxy.
+
+The bridge checks Store's public, non-identifying `/api/v1/access` declaration
+before accepting cookie-free research requests. An absent, inconsistent or unknown
+policy fails closed. It checks each request without caching access permission, so
+switching to authenticated mode blocks subsequent unauthenticated operations.
+The development bridge still exposes only archive reads; researchers using other
+DICOMweb clients can use Store's standard STOW endpoint directly in research mode.

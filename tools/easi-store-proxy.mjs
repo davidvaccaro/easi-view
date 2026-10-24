@@ -78,12 +78,28 @@ export function createEasiStoreProxy({ upstream = 'http://127.0.0.1:8048',
     dimseFactory = createDimseGateway, maxConcurrent = 4 } = {}) {
     const store = fixedPeer(upstream), gateways = new Map();
     if (!Number.isSafeInteger(maxConcurrent) || maxConcurrent < 1 || maxConcurrent > 8) throw new TypeError('Use a bounded local bridge connection limit.');
+    const permitsResearch = async signal => {
+        // The fixed Store must explicitly opt in. Never infer research access
+        // from an HTTP error, an absent cookie or the DIMSE port being open.
+        const response = await fetch(store + '/api/v1/access', {signal, redirect: 'error', cache: 'no-store'});
+        if (response.status === 404) { await response.body?.cancel(); return false; }
+        if (!response.ok) { await response.body?.cancel(); throw new Error('Store access-policy check failed.'); }
+        const policy = await jsonBody(response.body, signal, 4096);
+        return policy.profile === 'local-research' && policy.dicomwebAuthenticationRequired === false;
+    };
     let active = 0;
     return async (request, response) => {
         let url; try { url = new URL(request.url, 'http://localhost'); } catch { return false; }
         if (url.pathname !== PREFIX && !url.pathname.startsWith(PREFIX + '/')) return false;
         if (!allowedRequest(request)) { fail(response, 403, 'The Store bridge accepts same-origin loopback requests only.'); return true; }
         if (request.method !== 'GET') { response.setHeader('Allow', 'GET'); fail(response, 405, 'The Store bridge provides read-only access.'); return true; }
+        if (url.pathname === PREFIX + '/sign-in' && !url.search) {
+            // Use the viewer hostname so Store's HttpOnly cookie is available
+            // to this local bridge, including localhost and custom Store ports.
+            const destination = new URL(store); destination.hostname = new URL(`http://${request.headers.host}`).hostname;
+            response.writeHead(303, { Location: destination.href, 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' });
+            response.end(); return true;
+        }
         const session = url.pathname === PREFIX + '/session';
         const isDimse = url.pathname.startsWith(PREFIX + '/dimse/');
         const isWeb = url.pathname.startsWith(PREFIX + '/dicomweb/');
@@ -102,17 +118,21 @@ export function createEasiStoreProxy({ upstream = 'http://127.0.0.1:8048',
         response.on('close', closed); request.on('aborted', closed);
         try {
             const credentials = headersFor(request);
-            if (!session && !Object.keys(credentials).length) { fail(response, 401, `Sign in to EASI Store at ${store}/ using the same loopback hostname, then retry.`); return true; }
-            if (isDimse || session) {
+            let research = !Object.keys(credentials).length && await permitsResearch(signal);
+            if (!session && !Object.keys(credentials).length && !research) { fail(response, 401, `Sign in to EASI Store at ${store}/ using the same loopback hostname, then retry.`); return true; }
+            if (session || isDimse && !research) {
                 const check = await fetch(store + '/api/v1/session', { headers: credentials, signal, redirect: 'error', cache: 'no-store' });
                 if (!check.ok) { await check.body?.cancel(); throw new Error('Store authentication check failed.'); }
                 const state = await jsonBody(check.body, signal, 4096);
-                if (session) { response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); response.end(JSON.stringify({ authenticated: state.authenticated === true, setupRequired: state.setupRequired === true })); return true; }
-                if (state.authenticated !== true) { fail(response, 401, `Sign in to EASI Store at ${store}/, then retry.`); return true; }
+                if (state.authenticated !== true && !research) research = await permitsResearch(signal);
+                if (session) { response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); response.end(JSON.stringify({ authenticated: state.authenticated === true, setupRequired: state.setupRequired === true, researchAccess: research })); return true; }
+                if (state.authenticated !== true && !research) { fail(response, 401, `Sign in to EASI Store at ${store}/, then retry.`); return true; }
+            }
+            if (isDimse) {
                 const origin = `http://${request.headers.host}`;
                 if (!gateways.has(origin)) gateways.set(origin, dimseFactory({ association, publicOrigin: origin,
-                    // Authentication is checked above for every request before
-                    // this private fixed-peer handler can run.
+                    // Session authorization or explicit local research policy
+                    // is checked above for every request, without caching.
                     authorize: async () => true, transportFactory: () => new EasiStoreDimseTransport(), basePath: '/dimse' }));
                 const previous = request.url; request.url = '/dimse' + path + url.search;
                 try { await gateways.get(origin)(request, response); } finally { request.url = previous; }
