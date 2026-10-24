@@ -690,6 +690,7 @@
 .open-workflow-footer-start, .open-workflow-footer-end { display: flex; gap: 9px; align-items: center; }
 .open-workflow-button { padding: 9px 14px; border: 1px solid var(--border); background: var(--panel-raised); color: var(--text); border-radius: 6px; font-size: 11px !important; min-height: 35px; }
 .open-workflow-button:hover:not(:disabled) { border-color: var(--accent-border); }
+.open-workflow-button[data-open-action="manage-sources"] { margin-block: 16px 4px; }
 .open-workflow-primary { background: var(--accent-dark); border-color: var(--accent-border); color: var(--accent) !important; font-weight: 600 !important; }
 .open-workflow-text-button { border: 0; background: none; padding: 8px 0; color: var(--accent) !important; font-size: 11px !important; }
 .open-workflow-steps { display: flex; gap: 8px 20px; flex-wrap: wrap; padding: 0 30px 20px; }
