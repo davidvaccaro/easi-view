@@ -647,4 +647,10 @@ the original criteria and explicit search retry succeeded. Expiring a session
 between study selection and Add kept the checked studies/dialog; explicit Add
 retry displayed the image with one admitted study and no duplicate. Successful
 flows generated no runtime exceptions or external requests. Full checks pass
-2,184 tests plus build/distribution verification.
+2,185 tests plus build/distribution verification.
+
+The enterprise audit privacy assertion checks the exact public fields and allowed
+operation/status values, accepting finite nonnegative numeric timing separately.
+A deterministic regression accepts a 2.25 ms duration while rejecting UID text,
+extra clinical fields and sensitive values outside the timing field. This avoids
+mistaking elapsed time for an identifier in CI without relaxing the audit contract.

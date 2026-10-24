@@ -1,6 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createEnterpriseServices } from '../examples/gateway/client.js';
+import { assertEnterpriseAuditPrivacy } from './helpers/enterprise-audit.js';
+
+test('enterprise audit privacy distinguishes numeric timing from UIDs and rejects additional clinical fields', () => {
+    const clean = { operation: 'open-study', status: 'success', durationMs: 2.25 };
+    const forbidden = /synthetic|2\.25|https:|receipt|reference|patient/;
+    assert.doesNotThrow(() => assertEnterpriseAuditPrivacy([clean], forbidden));
+    for (const leaked of [{ ...clean, durationMs: '2.25.800' }, { ...clean, operation: '2.25.800' },
+        { ...clean, status: '2.25.800' }, { ...clean, studyUid: '2.25.800' }, { ...clean, patientId: 12345 },
+        { ...clean, reference: { studyUid: '2.25.800' } }]) {
+        assert.throws(() => assertEnterpriseAuditPrivacy([leaked], forbidden), { name: 'AssertionError' });
+    }
+    for (const context of [{ studyUid: '2.25.800' }, { identifier: 2.25 }]) {
+        assert.throws(() => assertEnterpriseAuditPrivacy([clean], forbidden, context), { name: 'AssertionError' });
+    }
+});
 
 test('host wiring performs no implicit operation and exercises separate archive/workflow/share HTTP contracts', async () => {
     const originalFetch = globalThis.fetch, calls = [], audits = [];
@@ -39,7 +54,9 @@ test('host wiring performs no implicit operation and exercises separate archive/
         assert.deepEqual((await services.shares.resolve(receipt)).reference, reference); await services.shares.revoke(issued.shareId);
         assert.equal(archiveHeaders, 1); assert.equal(hostHeaders, 9);
         assert.ok(calls.every(({ options }) => options.credentials === 'omit' && options.redirect === 'error'));
-        assert.ok(!/synthetic|2\.25|https:|receipt|reference/.test(JSON.stringify(audits)));
+        assertEnterpriseAuditPrivacy(audits, /synthetic|2\.25|https:|receipt|reference/);
+        assert.deepEqual(audits.map(event => event.operation), ['login', 'dicom-auth', 'worklist', 'open-study',
+            'save-context', 'load-context', 'create-share', 'resolve-share', 'revoke-share']);
         assert.equal(services.shares.getState().activeShareCount, 0);
     } finally { globalThis.fetch = originalFetch; services.dispose(); }
     assert.equal(services.session.getState().disposed, true);

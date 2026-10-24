@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { assertEnterpriseAuditPrivacy } from './helpers/enterprise-audit.js';
 import { EnterpriseSession, ShareCoordinator } from '../src/enterprise/index.js';
 
 const reference = { archiveKey: 'pacs-one', studyUid: '2.25.995', seriesUid: '2.25.995.1' };
@@ -24,7 +25,7 @@ test('explicit server-verified shares expire/revoke and default state/audit neve
     assert.deepEqual(await shares.revoke(issued.shareId), { shareId: issued.shareId, revoked: true });
     await assert.rejects(shares.resolve({ shareId: issued.shareId, capability: issued.capability }), /valid authorized data/);
     assert.equal(shares.getState().activeShareCount, 0);
-    assert.ok(!/private|capability|2\.25|https:|reference|share-1/.test(JSON.stringify({ state: shares.getState(), audits: f.audits })));
+    assertEnterpriseAuditPrivacy(f.audits, /private|capability|2\.25|https:|reference|share-1/, { state: shares.getState() });
     shares.dispose(); f.auth.dispose();
 });
 

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { assertEnterpriseAuditPrivacy } from './helpers/enterprise-audit.js';
 import { createEnterpriseViewer } from '../src/integration/enterprise-viewer.js';
 
 const tick = () => new Promise(resolve => setTimeout(resolve, 0));
@@ -67,7 +68,8 @@ test('construction has no implicit sign-in, query or storage, and explicit login
     assert.throws(() => f.state.configuration.headers({ ...request, url: 'https://foreign.invalid/studies' }));
     await f.controller.openStudy(primary); const page = await f.controller.listWorklist({ limit: 10 }); assert.equal(page.items.length, 1);
     assert.deepEqual(f.state.local, [11, 22]);
-    assert.ok(!/synthetic|2\.25|Bearer|https:|capability|reference|patient/i.test(JSON.stringify({ state: f.controller.getState(), events: f.state.events, audits: f.state.audits })));
+    assertEnterpriseAuditPrivacy(f.state.audits, /synthetic|2\.25|Bearer|https:|capability|reference|patient/i,
+        { state: f.controller.getState(), events: f.state.events });
     await f.controller.dispose(); assert.equal(f.state.viewerDisposeCalls, 0); assert.deepEqual(f.state.local, [11, 22]);
 });
 

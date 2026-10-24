@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { EnterpriseSession, WorkflowCoordinator, normalizeEnterpriseContext, createWorkflowHttpAdapter } from '../src/enterprise/index.js';
+import { assertEnterpriseAuditPrivacy } from './helpers/enterprise-audit.js';
 
 const reference = { archiveKey: 'pacs-one', studyUid: '2.25.991', seriesUid: '2.25.991.1' };
 const context = { version: 1, layout: 2, activeViewport: 0, viewports: [{ slot: 0, reference, frameIndex: 2, window: { center: 40, width: 400 } }] };
@@ -14,7 +15,7 @@ test('host JSON worklists and study context are functional, detached, and audite
     const page = await workflow.listWorklist({ limit: 10 }); assert.deepEqual(calls, [['private-realm', 0, 10]]);
     page.items[0].reference.studyUid = '2.25.123'; assert.equal(item.reference.studyUid, reference.studyUid);
     assert.deepEqual(await workflow.openStudy(reference), context); assert.equal(page.nextOffset, 1);
-    assert.ok(!/private-|opaque-case|2\.25|archiveKey|title|window/.test(JSON.stringify(audits))); workflow.dispose(); auth.dispose();
+    assertEnterpriseAuditPrivacy(audits, /private-|opaque-case|2\.25|archiveKey|title|window/); workflow.dispose(); auth.dispose();
 });
 
 test('explicit persistence retains only normalized versioned UID/frame/layout/window context and never uses browser storage', async () => {
