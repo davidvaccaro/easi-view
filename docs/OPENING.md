@@ -213,13 +213,17 @@ Default matching fields are patient ID/name, accession, study date and modality.
 A host may supply `searchFields` containing `patientBirthDate` or
 `issuerOfPatientId` only when its repository supports those optional matches.
 The standalone local preview includes named Local Orthanc and Local EASI Store
-DICOMweb/DIMSE sources and optional Connection settings; embedded viewers default
-to host-managed source configuration.
+DICOMweb/DIMSE sources and a **Storage sources** manager with explicit connection
+testing, authentication choices and optional nonsecret persistence; embedded
+viewers default to host-managed configuration. See [STORAGE_SOURCES.md](STORAGE_SOURCES.md)
+for the local DIMSE helper, safe editing/removal and the exact test scope.
 
 New session APIs:
 
 - `open('images' | 'study' | 'test')`, `getOpenWorkflowState()`.
-- `getSources()`, `registerSource(configuration)`; no replacement of existing IDs.
+- `getSources()`, `registerSource(configuration)`; registration does not replace IDs.
+- `updateSource(configuration)`, `removeSource(id)` for host-managed sources without admitted studies.
+- `openStorageSources()`, `testSource(id, {signal})` for explicit settings and metadata checks.
 - `getSessionCatalog()` for explicit identifying metadata; do not send it to telemetry.
 - `getSessionState()` for counts and opaque navigation IDs only.
 - `selectSessionPatient(id)`, `openSessionStudy(id)`.

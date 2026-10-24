@@ -422,3 +422,25 @@ test('source changes and close/reopen clear sign-in guidance', async () => {
         f.workflow.close(); f.workflow.open('study'); assert.equal(byClass(f.root, 'open-workflow-sign-in'), undefined); assert.equal(f.workflow.getState().error, '');
     } finally { f.cleanup(); }
 });
+
+test('remote storage has one manager entry point and can resume source selection without querying', () => {
+    let opened = 0;
+    const f = fixture({ onManageSources: () => { opened++; }, onConfigureSource: () => { throw new Error('Legacy form should not run.'); } }, { sourceEditing: true });
+    try {
+        f.workflow.open('remote');
+        assert.equal(f.workflow.getState().step, 'sources');
+        assert.equal(actions(f.root, 'manage-sources').length, 1);
+        assert.equal(byClass(f.root, 'open-workflow-settings'), undefined);
+        f.click('manage-sources'); assert.equal(opened, 1);
+        assert.equal(f.calls.some(call => call[0] === 'commit-remote'), false);
+        f.workflow.close(); f.options.getPolicy = () => ({ remoteStudies: false });
+        f.workflow.open('remote'); assert.notEqual(f.workflow.getState().step, 'sources');
+        assert.equal(actions(f.root, 'manage-sources').length, 0);
+    } finally { f.cleanup(); }
+});
+
+test('managed source settings remain available for connection testing when user editing is disabled', () => {
+    let opened = 0; const f = fixture({ onManageSources: () => opened++ }, { sourceEditing: false });
+    try { f.workflow.open('sources'); assert.equal(actions(f.root, 'manage-sources').length, 1); f.click('manage-sources'); assert.equal(opened, 1); }
+    finally { f.cleanup(); }
+});

@@ -34,9 +34,11 @@ import { LocalLibraryPanel } from './LocalLibraryPanel.js';
 import { LocalOpenSelection } from '../catalog/LocalOpenSelection.js';
 import { SessionCatalog } from '../catalog/SessionCatalog.js';
 import { SourceRegistry } from '../catalog/SourceRegistry.js';
+import { StorageSourceManager } from '../catalog/StorageSourceManager.js';
 import { SessionLibraryPanel } from './SessionLibraryPanel.js';
 import { OpenWorkflow } from './OpenWorkflow.js';
 import { PrimaryMenu } from './PrimaryMenu.js';
+import { StorageSourcesDialog } from './StorageSourcesDialog.js';
 import { SessionDragRegistry, SESSION_ITEM_TYPE } from '../integration/SessionDragRegistry.js';
 import { instanceNavigation } from '../data/instance-navigation.js';
 import { describeImageStacks } from './image-stack-labels.js';
@@ -324,11 +326,19 @@ export function startApp(root, options = {}) {
   const sourceRegistry = new SourceRegistry(options.sources ?? []), localPreview = new LocalOpenSelection();
   const sessionOrigins = new WeakMap(), sessionLoaded = new Map(), savedPatientViews = new Map();
   const sessionDrag = new SessionDragRegistry();
-  let primaryMenu = null, closingSession = null;
+  let primaryMenu = null, closingSession = null, storageSourcesDialog = null, returnToSourceSelection = false;
   let sessionPanel = null, openWorkflow = null, sessionRevision = 0, sessionDisplayPlan = null, sessionError = '', sessionNavigationRequest = 0, sessionPanelView = null, sessionPanelKey = '';
   const sessionMetadataControllers = new Set();
-  let pickerIntent = 'images', pickerGeneration = 0, pendingPickerGeneration = null, configuredSourceSequence = 0;
+  let pickerIntent = 'images', pickerGeneration = 0, pendingPickerGeneration = null;
   const openingPolicy = { localImages: true, localStudies: true, remoteStudies: true, tests: true, sourceEditing: false, ...options.opening };
+  function canChangeStorageSource(id) {
+    return !state.disposed && !sessionCatalog.getView().patients.some(patient => patient.source?.kind === 'remote' && patient.source.id === id);
+  }
+  const storageSources = new StorageSourceManager({ registry: sourceRegistry,
+    origin: options.storageSources?.origin ?? window.location?.origin,
+    storage: options.storageSources?.storage,
+    connector: options.storageSources?.connector,
+    canChange: canChangeStorageSource });
   let localView = localCatalog.getView(), localViewRevision = 0, localPanel = null, localPanelKey = '';
   let localImportController = null, localImportDone = Promise.resolve(), localImportProgress = null, localImportSummary = null, localMediaReport = null, localLibraryError = '', localImportRequest = 0;
   let localSelectionOperation = null, localSelectionRequest = 0;
@@ -561,7 +571,7 @@ export function startApp(root, options = {}) {
     },
   });
   openWorkflow = new OpenWorkflow(root, {
-    getSources: () => sourceRegistry.list(),
+    getSources: () => storageSources.list(),
     getAuthenticationHelp: id => options.getAuthenticationHelp?.(id),
     getPolicy: () => ({ ...openingPolicy, tests: openingPolicy.tests && root.dataset.uiDemos !== 'false' }),
     onPickFiles: intent => { pickerIntent = intent; pendingPickerGeneration = pickerGeneration; $('file-input').click(); },
@@ -572,14 +582,30 @@ export function startApp(root, options = {}) {
     onListRemoteStudies: (id, patient, page, request) => sourceRegistry.listPatientStudies(id, patient, { ...page, ...request }),
     onCommitRemote: (id, patient, studies, request) => commitRemoteSelection(id, patient, studies, request),
     onOpenTest: (id, request) => openTestWorkspace(id, request),
-    onConfigureSource: configuration => configureSourceFromDialog(configuration),
+    onManageSources: () => { returnToSourceSelection = true; openWorkflow.close(); storageSourcesDialog.open(); },
     onClose: () => { ++pickerGeneration; pendingPickerGeneration = null; localPreview.clear(); },
   });
+
+  storageSourcesDialog = new StorageSourcesDialog(root, {
+    manager: storageSources,
+    canEdit: () => openingPolicy.sourceEditing === true,
+    getConnectorAvailable: () => storageSources.connectorAvailable(),
+    onChange: () => { if (!state.disposed) status('Storage sources updated'); },
+    onClose: () => {
+      if (returnToSourceSelection && !state.disposed) { returnToSourceSelection = false; openWorkflow.open('remote'); }
+    }
+  });
+  function openStorageSources() {
+    ensureActive();
+    if (!openingPolicy.remoteStudies) throw new Error('Remote storage is disabled by the application.');
+    returnToSourceSelection = false; openWorkflow.close(); storageSourcesDialog.open();
+  }
 
   primaryMenu = new PrimaryMenu(root, {
     toggleButton: $('primary-menu-toggle'),
     onOpen: () => openWorkflow.open(),
     onCloseSession: () => closeSession(),
+    ...(openingPolicy.remoteStudies ? { onStorageSources: openStorageSources } : {}),
     onShortcuts: () => $('shortcuts-dialog').showModal(),
     onError: error => { if (!state.disposed && !isAbort(error)) showError(error, 'Unable to finish the session action'); },
     canClose: () => Boolean(sessionCatalog.getView().counts.patients || state.series.length || state.busy || localImportController),
@@ -2124,11 +2150,6 @@ export function startApp(root, options = {}) {
       localImportProgress = null; if (!state.disposed) updateBusy();
     }
   }
-  function configureSourceFromDialog(configuration) {
-    if (!openingPolicy.sourceEditing) throw new Error('Repository configuration is managed by the host application.');
-    const descriptor = sourceRegistry.add({ ...configuration, id: configuration.id || `repository-${++configuredSourceSequence}` });
-    return descriptor;
-  }
   async function commitRemoteSelection(sourceId, patient, studies, request = {}) {
     if (closingSession) await closingSession;
     ensureActive(); if (request.signal?.aborted) throw new DOMException('The study selection was canceled.', 'AbortError');
@@ -3184,7 +3205,7 @@ export function startApp(root, options = {}) {
   status('Viewer ready · open a DICOM image');
   updateBusy();
   const initialDemo = options.initialDemo === undefined ? 'ct' : options.initialDemo;
-  const ready = initialDemo === null ? Promise.resolve(getState()) : openDemo(initialDemo, { rejectErrors: true });
+  const ready = Promise.resolve(storageSources.load()).then(() => initialDemo === null ? getState() : openDemo(initialDemo, { rejectErrors: true }));
   // The standalone app need not consume the API promise to show an initial-load error.
   ready.catch(() => {});
 
@@ -3194,7 +3215,7 @@ export function startApp(root, options = {}) {
     state.disposed = true;
     ++localImportRequest; localImportController?.abort(); localSelectionOperation?.controller.abort();
     const localCleanup = Promise.allSettled([localImportDone, localSelectionOperation?.done ?? Promise.resolve()]);
-    primaryMenu.dispose(); sessionDrag.clear(); openWorkflow.dispose(); localPreview.dispose(); sessionPanel.dispose(); sourceRegistry.dispose();
+    primaryMenu.dispose(); storageSourcesDialog.dispose(); storageSources.dispose(); sessionDrag.clear(); openWorkflow.dispose(); localPreview.dispose(); sessionPanel.dispose(); sourceRegistry.dispose();
     for (const controller of sessionMetadataControllers) controller.abort();
     sessionCatalog.dispose(); sessionLoaded.clear(); savedPatientViews.clear();
     localPanel.dispose(); localCatalog.dispose(); localSession.update({ patients: [] }); localSession.clear(); localView = { patients: [] };
@@ -3254,6 +3275,20 @@ export function startApp(root, options = {}) {
     getSessionCatalog: () => { ensureActive(); return structuredClone({ ...sessionCatalog.getView(), activePatientId: sessionReading.patientId }); }, getSessionState,
     selectSessionPatient, openSessionStudy, openSessionSeries, openSessionInstance, listSessionInstances, compareSessionStudies, removeSessionPatient, closeSession, clearViewport,
     getSources: () => sourceRegistry.list(), registerSource: configuration => sourceRegistry.add(configuration),
+    openStorageSources,
+    testSource: (id, request) => { ensureActive(); return storageSources.test(id, request); },
+    updateSource: configuration => {
+      ensureActive();
+      if (storageSources.getProfile(configuration?.id)?.managed !== true) throw new Error('Edit user-added connections in Storage sources.');
+      if (!canChangeStorageSource(configuration?.id)) throw new Error('Close the studies from this source before changing its connection.');
+      return sourceRegistry.replace(configuration);
+    },
+    removeSource: id => {
+      ensureActive();
+      if (storageSources.getProfile(id)?.managed !== true) throw new Error('Remove user-added connections in Storage sources.');
+      if (!canChangeStorageSource(id)) throw new Error('Close the studies from this source before removing its connection.');
+      return sourceRegistry.remove(id);
+    },
     importLocalFiles, getLocalCatalog: () => { ensureActive(); return structuredClone(localView); }, getLocalLibraryState,
     selectLocalPatient, openLocalStudy, openLocalSeries, compareLocalStudies, cancelLocalImport, clearLocalLibrary, associateLocalPatient,
     getReadingProtocols, setReadingProtocols, previewReadingProtocol, applyReadingProtocol, cancelReadingProtocol, resetReadingProtocol, getReadingProtocolState,

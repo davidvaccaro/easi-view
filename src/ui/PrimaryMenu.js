@@ -10,6 +10,7 @@ export class PrimaryMenu {
         this.#items = [
             { id: 'open', label: 'Open…', hint: 'Images, studies and test images', callback: 'onOpen' },
             { id: 'close', label: 'Close viewing session', hint: 'Clear the open patients and images', callback: 'onCloseSession' },
+            { id: 'storage-sources', label: 'Storage sources', hint: 'Settings · DICOMweb and DIMSE archives', callback: 'onStorageSources', optional: true },
             { id: 'shortcuts', label: 'Keyboard shortcuts', callback: 'onShortcuts', optional: true }
         ];
         this.#mount(); this.refresh();

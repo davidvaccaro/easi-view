@@ -46,6 +46,27 @@ function samePatient(actual, expected) {
         ['patientName', 'patientBirthDate'].every(key => !expected[key] || expected[key] === value[key]);
 }
 
+function scopedClient(Client) {
+    return class extends Client {
+        constructor(options, internal, signals) { super(options, internal); this.sourceSignals = signals; }
+        sourceOptions(options = {}) {
+            const signal = AbortSignal.any([...this.sourceSignals(), ...(options.signal ? [options.signal] : [])]);
+            checkAbort(signal);
+            return { ...options, signal };
+        }
+        async request(path, options = {}) { return super.request(path, this.sourceOptions(options)); }
+        async metadata(path, options = {}) { return super.metadata(path, this.sourceOptions(options)); }
+        async searchStudies(filters, options = {}) { return super.searchStudies(filters, this.sourceOptions(options)); }
+        async listSeries(studyUid, options = {}) { return super.listSeries(studyUid, this.sourceOptions(options)); }
+        async getSeriesMetadata(studyUid, seriesUid, options = {}) { return super.getSeriesMetadata(studyUid, seriesUid, this.sourceOptions(options)); }
+        async retrieveInstance(studyUid, seriesUid, sopUid, options = {}) { return super.retrieveInstance(studyUid, seriesUid, sopUid, this.sourceOptions(options)); }
+        async retrieveNativeFrame(studyUid, seriesUid, sopUid, frameNumber, expectedBytes, options = {}) {
+            return super.retrieveNativeFrame(studyUid, seriesUid, sopUid, frameNumber, expectedBytes, this.sourceOptions(options));
+        }
+    };
+}
+const ScopedDicomWebClient = scopedClient(DicomWebClient), ScopedDimseGatewayClient = scopedClient(DimseGatewayClient);
+
 /** Configured source names are public; URLs, auth suppliers and header values remain private.
  * Registration performs validation only. It neither searches nor connects to a repository.
  * Every source owns an independent stable client and candidate namespace. */
@@ -75,16 +96,13 @@ export class SourceRegistry {
 
     #check() { if (this.#disposed) throw new Error('The source registry has been disposed.'); }
 
-    /** Host-only source registration; no connection or patient request is made. */
-    add(source) {
-        this.#check();
-        if (this.#entries.size >= MAX_SOURCES || !dataProperties(source,
+    #createEntry(source) {
+        if (!dataProperties(source,
             ['id', 'name', 'type', 'baseUrl', 'headers', 'credentials', 'retrievalMode', 'searchFields']) ||
             typeof source.id !== 'string' || !/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/u.test(source.id) ||
             !text(source.name, 100) || !source.name.trim() || !['dicomweb', 'dimse'].includes(source.type)) {
             throw new TypeError('Configure a source with a unique ID, a short display name, a supported type, and an HTTP gateway URL.');
         }
-        if (this.#entries.has(source.id)) throw new TypeError('Remote source IDs must be unique.');
         const searchFields = source.searchFields ?? DEFAULT_SOURCE_SEARCH_FIELDS;
         if (!Array.isArray(searchFields) || !searchFields.length || searchFields.some(key => !SOURCE_SEARCH_FIELDS.includes(key)) ||
             new Set(searchFields).size !== searchFields.length || !searchFields.includes('patientId')) {
@@ -97,14 +115,43 @@ export class SourceRegistry {
         for (const key of ['headers', 'credentials', 'retrievalMode']) if (source[key] !== undefined) {
             options[key] = key === 'headers' && plain(source[key]) ? Object.freeze({ ...source[key] }) : source[key];
         }
-        const Client = source.type === 'dimse' ? DimseGatewayClient : DicomWebClient;
+        const Client = source.type === 'dimse' ? ScopedDimseGatewayClient : ScopedDicomWebClient;
         // Constructors validate without invoking fetch or an auth callback.
         new Client(options);
         const descriptor = freeze({ id: source.id, name: source.name.trim(), type: source.type,
             capabilities: { searchFields: [...searchFields], patientSearch: true, studySelection: true,
                 retrievalMode: options.retrievalMode ?? 'instance', requiresGateway: source.type === 'dimse' } });
-        this.#entries.set(source.id, { descriptor, options, Client, client: null, patients: new Map(), signatures: new Map() });
-        return descriptor;
+        return { descriptor, options, Client, client: null, patients: new Map(), signatures: new Map(), lifetime: new AbortController() };
+    }
+
+    /** Registration performs no request or credential refresh. */
+    add(source) {
+        this.#check();
+        if (this.#entries.size >= MAX_SOURCES) throw new TypeError('Configure at most 32 remote sources.');
+        const entry = this.#createEntry(source);
+        if (this.#entries.has(entry.descriptor.id)) throw new TypeError('Remote source IDs must be unique.');
+        this.#entries.set(entry.descriptor.id, entry); return entry.descriptor;
+    }
+
+    #forgetEntry(entry) {
+        entry.lifetime.abort();
+        for (const [key, record] of entry.signatures) {
+            this.#candidates.delete(record.id);
+            this.#historyBytes -= encoder.encode(key).byteLength + [...record.studyBytes.values()].reduce((sum, value) => sum + value, 0);
+            this.#historyStudies -= record.studyBytes.size;
+        }
+        entry.patients.clear(); entry.signatures.clear();
+    }
+
+    /** The caller must guard admitted session references before retargeting. */
+    replace(source) {
+        this.#check(); const entry = this.#createEntry(source), previous = this.#entry(entry.descriptor.id);
+        this.#forgetEntry(previous); this.#entries.set(entry.descriptor.id, entry); return entry.descriptor;
+    }
+
+    remove(id) {
+        const entry = this.#entry(id); this.#forgetEntry(entry); this.#entries.delete(id);
+        return true;
     }
 
     list() { this.#check(); return [...this.#entries.values()].map(entry => entry.descriptor); }
@@ -127,7 +174,7 @@ export class SourceRegistry {
 
     getClient(id) {
         const entry = this.#entry(id);
-        return entry.client ??= new entry.Client(entry.options, this.#internal);
+        return entry.client ??= new entry.Client(entry.options, this.#internal, () => [entry.lifetime.signal, this.#lifetime.signal]);
     }
 
     #filters(entry, filters) {
@@ -146,13 +193,13 @@ export class SourceRegistry {
             ? { ...filters, patientName: `${name}*` } : filters;
     }
 
-    #options(options) {
+    #options(options, entry) {
         if (!dataProperties(options, ['signal', 'offset', 'limit']) ||
             options.signal != null && (typeof options.signal.addEventListener !== 'function' || typeof options.signal.aborted !== 'boolean')) {
             throw new Error('Use supported paging options and an AbortSignal for patient requests.');
         }
         checkAbort(options.signal);
-        return { ...options, signal: options.signal ? AbortSignal.any([options.signal, this.#lifetime.signal]) : this.#lifetime.signal };
+        return { ...options, signal: AbortSignal.any([this.#lifetime.signal, entry.lifetime.signal, ...(options.signal ? [options.signal] : [])]) };
     }
 
     #rememberStudy(record, study) {
@@ -168,7 +215,7 @@ export class SourceRegistry {
     async searchPatients(sourceId, filters, options = {}) {
         const entry = this.#entry(sourceId);
         const supported = this.#filters(entry, filters);
-        options = this.#options(options);
+        options = this.#options(options, entry);
         const result = await this.getClient(sourceId).searchStudies(supported, options);
         checkAbort(options.signal);
         const patients = new Map();
@@ -203,7 +250,7 @@ export class SourceRegistry {
         const entry = this.#entry(sourceId);
         const record = entry.patients.get(typeof patient === 'string' ? patient : patient?.id);
         if (!record) throw new Error('Choose a patient returned by this repository search.');
-        options = this.#options(options);
+        options = this.#options(options, entry);
         checkAbort(options.signal);
         if (!exact(record.patientId)) {
             // A missing or wildcard-containing ID cannot safely select every study of a person.

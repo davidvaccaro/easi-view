@@ -26,6 +26,12 @@ export interface RemoteSource {
     readonly id: string; readonly name: string; readonly type: 'dicomweb' | 'dimse';
     readonly capabilities: { readonly searchFields: readonly SourceSearchField[]; readonly patientSearch: true; readonly studySelection: true; readonly retrievalMode: 'instance' | 'frame'; readonly requiresGateway: boolean };
 }
+export interface SourceConnectionTestResult {
+    readonly ok: boolean;
+    readonly summary: string;
+    readonly checks: ReadonlyArray<{ readonly name: string; readonly status: 'passed' | 'failed' | 'not-tested'; readonly detail?: string }>;
+    readonly durationMs?: number;
+}
 export interface OpenWorkflowState {
     open: boolean; step: string; intent: 'images' | 'study' | null; busy: boolean;
     sourceId: string | null; patientId: string | null; selectedStudyIds: string[];
@@ -332,6 +338,14 @@ export interface Viewer {
     getSources(): readonly RemoteSource[];
     /** Host-controlled registration. IDs are stable and cannot replace an existing connection. */
     registerSource(configuration: RemoteSourceConfiguration): RemoteSource;
+    /** Replace a host-managed source only when it has no admitted session studies. */
+    updateSource(configuration: RemoteSourceConfiguration): RemoteSource;
+    /** Remove a host-managed source only when it has no admitted session studies. */
+    removeSource(id: string): boolean;
+    /** Explicit bounded metadata query; does not download or certify image retrieval. */
+    testSource(id: string, options?: { signal?: AbortSignal }): Promise<SourceConnectionTestResult>;
+    /** Open connection settings. Editing follows opening.sourceEditing. */
+    openStorageSources(): void;
     openFiles(files: Iterable<File> | FileList): Promise<ViewerState>;
     /** Add metadata to the session catalog without materializing the collection's pixel data. */
     importLocalFiles(files: Iterable<File> | FileList, options?: {signal?: AbortSignal}): Promise<LocalImportResult>;

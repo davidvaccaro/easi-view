@@ -28,7 +28,7 @@ function fixture(overrides = {}) {
 
 test('primary menu exposes ordered normal navigation buttons and preserves shadow-root focus', () => {
     const f = fixture(); try {
-        assert.deepEqual(walk(f.dialog).filter(node => node.dataset.primaryAction).map(node => node.id), ['primary-menu-open', 'primary-menu-close', 'primary-menu-shortcuts']);
+        assert.deepEqual(walk(f.dialog).filter(node => node.dataset.primaryAction).map(node => node.id), ['primary-menu-open', 'primary-menu-close', 'primary-menu-storage-sources', 'primary-menu-shortcuts']);
         assert.equal(walk(f.dialog).some(node => node.attributes.role === 'menu'), false);
         assert.equal(f.toggle.attributes['aria-haspopup'], 'dialog'); assert.equal(f.toggle.attributes['aria-expanded'], 'false');
         f.menu.open(); assert.equal(f.menu.isOpen(), true); assert.equal(f.dialog.open, true); assert.equal(f.document.shadow.activeElement, f.byId('primary-menu-open'));
@@ -92,4 +92,15 @@ test('toggle wiring and disposal remove the drawer and listeners without closing
     f.toggle.dispatchEvent(new Event('click')); assert.equal(f.menu.isOpen(), false); f.menu.open(); f.menu.dispose();
     assert.equal(f.menu.isOpen(), false); assert.equal(f.byId('primary-menu'), undefined); assert.equal(f.toggle.attributes['aria-controls'], undefined);
     f.toggle.dispatchEvent(new Event('click')); f.dialog.dispatchEvent(new Event('cancel')); f.menu.open(); assert.equal(f.menu.isOpen(), false); assert.deepEqual(f.calls, []); f.menu.dispose();
+});
+
+
+test('storage source settings are optional and dismiss the primary menu before opening', () => {
+    const absent = fixture();
+    try { assert.equal(absent.byId('primary-menu-storage-sources').hidden, true); } finally { absent.menu.dispose(); }
+    let f; f = fixture({onStorageSources() { assert.equal(f.menu.isOpen(), false); f.calls.push('storage-sources'); }});
+    try {
+        f.menu.open(); assert.equal(f.byId('primary-menu-storage-sources').hidden, false);
+        f.click('primary-menu-storage-sources'); assert.deepEqual(f.calls, ['storage-sources']);
+    } finally { f.menu.dispose(); }
 });

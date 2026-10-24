@@ -151,6 +151,7 @@ export class OpenWorkflow {
         const policy = this.#policy();
         if (path === 'images' && policy.allowLocalImages) { this.#state.step = 'images'; this.#state.intent = 'images'; }
         else if (['study', 'studies'].includes(path) && (policy.allowLocalStudies || policy.allowRemote)) { this.#state.step = 'study'; this.#state.intent = 'study'; }
+        else if (['sources', 'remote'].includes(path) && policy.allowRemote) { this.#state.step = 'sources'; this.#state.intent = 'study'; }
         else if (['test', 'tests'].includes(path) && policy.allowTests) this.#state.step = 'test';
         this.#render();
         if (!this.#dialog.open) { if (typeof this.#dialog.showModal === 'function') this.#dialog.showModal(); else { this.#dialog.open = true; this.#dialog.setAttribute('open', ''); } }
@@ -223,6 +224,7 @@ export class OpenWorkflow {
         else if (action === 'pick-images-folder' && policy.allowLocalImages) this.#pick('folder', 'images');
         else if (action === 'pick-study-folder' && policy.allowLocalStudies) this.#pick('folder', 'study');
         else if (action === 'remote' && policy.allowRemote) this.#navigate('sources', {clear: true});
+        else if (action === 'manage-sources' && policy.allowRemote && this.#callbacks.onManageSources) this.#callbacks.onManageSources();
         else if (action === 'source') { this.#state.sourceId = data.sourceId; this.#state.filters = {}; this.#navigate('criteria', {clear: true}); }
         else if (action === 'search') this.#searchRemote();
         else if (action === 'patient') this.#choosePatient(data.patientId);
@@ -364,10 +366,13 @@ export class OpenWorkflow {
     #note(text) { return this.#node('p', 'open-workflow-note', text); }
     #renderSources() {
         const sources = this.#sources(), cards = this.#node('div', 'open-workflow-cards');
-        for (const source of sources) cards.append(this.#card(source.name || source.label || 'Configured repository', source.description || (source.type === 'dimse' ? 'Connected through a configured image gateway.' : 'Search patient studies in this archive.'), 'source', {sourceId: string(source.id)}, source.type === 'dimse' ? 'DIMSE' : 'DICOMweb'));
+        for (const source of sources) cards.append(this.#card(source.name || source.label || 'Configured repository', source.description || (source.type === 'dimse' ? 'Connected through a configured image gateway.' : 'Search patient studies in this archive.'), 'source', {sourceId: string(source.id)}, `${source.type === 'dimse' ? 'DIMSE' : 'DICOMweb'}${source.isDefault ? ' · DEFAULT' : ''}`));
         this.#body.append(cards);
         if (!sources.length) this.#body.append(this.#note('No remote repositories are configured. Your application administrator can provide a connection.'));
-        if (this.#policy().allowSourceEditing && this.#callbacks.onConfigureSource) {
+        if (this.#callbacks.onManageSources) {
+            this.#body.append(this.#button('Storage sources…', 'manage-sources', {}, 'open-workflow-button'));
+            this.#body.append(this.#note('Manage connections and test access before searching.'));
+        } else if (this.#policy().allowSourceEditing && this.#callbacks.onConfigureSource) {
             const details = this.#node('details', 'open-workflow-settings'); details.append(this.#node('summary', null, 'Connection settings'));
             const form = this.#node('form', 'open-workflow-form'); form.dataset.openForm = 'configure';
             this.#field(form, 'Repository name', 'sourceName', 'text', '', 'For example: Research archive');

@@ -162,8 +162,11 @@ follows only referenced media; Open Images scans exactly the selected contents.
 Malformed optional study/series labels are omitted with a notice; original files
 and patient/image identity checks remain unchanged.
 Remote search has a patient-selection step and a study checklist. Sources and
-credentials are configured by the host; the standalone preview also has optional
-Connection settings. See [OPENING.md](docs/OPENING.md),
+credentials can be configured by the host. The standalone viewer's **Storage
+sources** manager adds, edits, removes and tests DICOMweb/DIMSE connections,
+with optional nonsecret saved profiles and session-only credentials. Local DIMSE
+can use the viewer's companion service for host/port/AE settings. See
+[Storage sources](docs/STORAGE_SOURCES.md), [OPENING.md](docs/OPENING.md),
 [LOCAL_LIBRARY.md](docs/LOCAL_LIBRARY.md), [DICOMWEB.md](docs/DICOMWEB.md) and
 [WORKSPACE.md](docs/WORKSPACE.md).
 

@@ -113,6 +113,8 @@ an actionable error before mounting.
 | `theme` | `{}` | Supported hexadecimal color tokens below |
 | `ui.header`, `ui.library`, `ui.inspector`, `ui.statusBar`, `ui.demos` | All `true` | Booleans controlling the corresponding chrome |
 | `initialDemo` | `null` | `ct`, `mr`, `xr`, `us`, or `null` |
+| `sources` | `[]` | Named DICOMweb/DIMSE HTTP sources with optional host-supplied headers and credentials; see [OPENING.md](OPENING.md) |
+| `opening` | Standard opening flows, editing off | Boolean `localImages`, `localStudies`, `remoteStudies`, `tests`, `sourceEditing` policies |
 | `styleNonce` | `null` | Host CSP nonce, nonempty text up to 256 characters without control characters |
 
 Theme keys are `accent`, `background`, `panel`, `text`, `muted` and `border`.
@@ -143,6 +145,9 @@ Hiding demo buttons does not disable programmatic `openDemo()` calls.
 
 | API | Behavior |
 | --- | --- |
+| `openStorageSources()` | Open source settings; host-managed entries remain read-only and editable sources follow `opening.sourceEditing` |
+| `testSource(id, {signal})` | Explicit bounded metadata connection test; no image download or patient details in the result |
+| `updateSource(configuration)`, `removeSource(id)` | Change host-managed sources only when no studies from that source are admitted; old requests are canceled |
 | `openFiles(files)` | Promise; accepts a `FileList` or collection of browser files. Reads them locally without uploading |
 | `openUrl(url)` | Promise; explicitly fetches an HTTP(S) DICOM or multipart DICOM response. Requires archive CORS and a supported profile; credentials are omitted. Use the configured archive APIs for host-managed request headers |
 | `openDemo(id)` | Promise; opens generated `ct`, `mr`, `xr` or `us` data |

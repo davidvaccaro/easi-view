@@ -654,3 +654,33 @@ operation/status values, accepting finite nonnegative numeric timing separately.
 A deterministic regression accepts a 2.25 ms duration while rejecting UID text,
 extra clinical fields and sensitive values outside the timing field. This avoids
 mistaking elapsed time for an identifier in CI without relaxing the audit contract.
+
+
+## Storage source manager — 2026-10-24
+
+The source update passed all **2,237 tests**, the production build and distribution
+guards. Coverage includes remembered nonsecret profiles, memory-only credentials,
+managed-source protection, defaults, safe edit/remove, per-source cancellation,
+history isolation, persistence rollback, bounded cleanup, explicit connection tests,
+loopback connector controls, DNS/IP validation and owner-only target persistence.
+
+Disposable Chrome verified managed-source testing; unsaved tests without source
+creation or image downloads; remember/default ordering; editing, removal and reload;
+bearer/Basic success; required credential re-entry after reload; generic 401/403 and
+malformed-service errors; prompt cancellation; and mobile layout without overflow.
+A configured local DIMSE source passed C-ECHO and metadata search, then opened a
+12-frame generated study through C-FIND/C-GET and displayed its 128 × 128 image.
+Changing or removing an admitted source was blocked. There were no runtime
+exceptions or unexpected external requests; expected denied-response browser logs
+were distinguished from application errors. Screenshots were visually inspected.
+
+An independent browser SDK consumer passed **9 checks** and strict TypeScript
+compilation: no implicit archive traffic, safe source descriptors, a limit-one
+metadata-only test, managed settings without editing controls, unused source
+update/remove, caller cancellation, generated image display, admission guards,
+close-session unlocking and disposal. The test archive's known pixel samples were
+independently verified in a separate real-socket DIMSE test. All archives, accounts
+and credentials used here were generated fixtures; no private patient data was used.
+
+The local previews were rebuilt and restarted with the companion connector.
+The already-published npm candidate and hosted static demo remain separate artifacts.

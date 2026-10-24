@@ -1,14 +1,20 @@
 # Supported profile and validation status
 
-## Current development — local EASI Store
+## Current development — storage source management
 
-The standalone development server now connects to local EASI Store 0.2.0 through
-a fixed authenticated bridge, with named DICOMweb and DIMSE sources. This changes
-the local integration, not the already-published RC artifact. The integrated
-checkout passes **2,185 tests**, its production build and distribution guards;
-actual DICOMweb/DIMSE opening, local research access, sign-in recovery and twelve original-encoding decode paths are
-recorded in [BROWSER_VALIDATION.md](BROWSER_VALIDATION.md). See
-[opening instructions and limits](OPENING.md#local-easi-store-connection).
+The standalone viewer includes a unified **Storage sources** manager for named
+DICOMweb and DIMSE connections, explicit bounded tests, session-only credentials,
+optional nonsecret saved profiles, defaults and safe edit/remove controls.
+Host-provided sources remain managed. Native DIMSE configuration uses an optional
+loopback companion service with fixed-target gateways; static deployments use a
+configured HTTP gateway. See [STORAGE_SOURCES.md](STORAGE_SOURCES.md).
+
+Local EASI Store 0.2.1 connectivity supports explicit research or authenticated
+access through named DICOMweb and DIMSE bridges, including sign-in recovery and
+patient-name prefix searches. These development changes do not alter the
+already-published npm RC or hosted demo. Current verification is recorded in
+[BROWSER_VALIDATION.md](BROWSER_VALIDATION.md); the exact supported image profiles
+remain those below.
 
 
 Version **1.0.0-rc.1** is the public AI-free release candidate using the independent

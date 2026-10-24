@@ -284,3 +284,88 @@ test('cumulative metadata byte limits apply before retaining another oversized p
     });
     assert.throws(() => new SourceRegistry([], { historyLimits: { bytes: 0, studies: 10 } }), /bounded internal/);
 });
+
+test('source replacement is validated atomically and forgets only that source patient evidence', async () => {
+    await withFetch(async () => json([study(1)]), async () => {
+        const registry = new SourceRegistry([source('a'), source('b')]);
+        try {
+            const previous = registry.getClient('a'), other = registry.getClient('b');
+            const first = (await registry.searchPatients('a', {patientId:'SYNTH-1'})).items[0];
+            const second = (await registry.searchPatients('b', {patientId:'SYNTH-1'})).items[0];
+            assert.equal(registry.getState().patientCandidates,2);
+            assert.throws(()=>registry.replace(source('a',{baseUrl:'https://user:PRIVATE@invalid.test'})),/without credentials/);
+            assert.equal(registry.getClient('a'),previous);assert.equal(registry.getState().patientCandidates,2);
+            registry.replace(source('a',{baseUrl:'https://changed.invalid/dicom-web'}));
+            assert.notEqual(registry.getClient('a'),previous);assert.equal(registry.getClient('b'),other);
+            assert.equal(registry.getState().patientCandidates,1);
+            await assert.rejects(registry.listPatientStudies('a',first),/Choose a patient/);
+            assert.equal((await registry.listPatientStudies('b',second)).items.length,1);
+            await assert.rejects(previous.searchStudies(),{name:'AbortError'});
+            assert.equal(registry.remove('a'),true);assert.equal(registry.getState().patientCandidates,1);
+        } finally {registry.dispose();}
+    });
+});
+
+test('per-source changes abort direct cached clients and ignored late responses without canceling other sources', async () => {
+    let finish,canceled=false;
+    const registry=new SourceRegistry([source('a'),source('b')]);
+    try {
+        await withFetch(async url=>new URL(url).hostname==='synthetic.invalid' ? new Promise(resolve=>{finish=resolve;}) : json([]),async()=>{
+            const client=registry.getClient('a'),pending=client.searchStudies(),rejected=assert.rejects(pending,{name:'AbortError'});
+            await Promise.resolve();registry.replace(source('a',{baseUrl:'https://replacement.invalid'}));await rejected;
+            finish(new Response(new ReadableStream({cancel(){canceled=true;}}),{headers:{'content-type':'application/dicom+json'}}));
+            await new Promise(resolve=>setTimeout(resolve,0));assert.equal(canceled,true);
+            assert.equal((await registry.getClient('a').searchStudies()).items.length,0);
+        });
+        assert.equal(registry.list().length,2);
+    } finally {registry.dispose();}
+});
+
+test('removing a source cancels pending credential refresh and frees its cumulative history budget', async () => {
+    const registry=new SourceRegistry([source('a'),source('b')],{historyLimits:{bytes:4096,studies:1}});
+    try {
+        await withFetch(async()=>json([study(1)]),async()=>{
+            await registry.searchPatients('a',{patientId:'SYNTH-1'});
+            await assert.rejects(registry.searchPatients('b',{patientId:'SYNTH-1'}),/history reached/);
+            registry.remove('a');assert.equal((await registry.searchPatients('b',{patientId:'SYNTH-1'})).items.length,1);
+        });
+        registry.replace(source('b',{headers:()=>new Promise(()=>{})}));
+        const pending=registry.searchPatients('b',{patientId:'SYNTH-1'}),rejected=assert.rejects(pending,{name:'AbortError'});
+        registry.remove('b');await rejected;assert.equal(registry.getState().patientCandidates,0);
+    } finally {registry.dispose();}
+});
+
+test('clearing search history cancels direct active reads but keeps the same client usable for future requests', async () => {
+    let started=false;const registry=new SourceRegistry([source()]),client=registry.getClient('research');
+    try {
+        await withFetch(async()=>{started=true;return new Promise(()=>{});},async()=>{
+            const pending=client.searchStudies(),rejected=assert.rejects(pending,{name:'AbortError'});await Promise.resolve();
+            assert.equal(started,true);registry.clearSearchHistory();await rejected;
+        });
+        assert.equal(registry.getClient('research'),client);
+        await withFetch(async()=>json([]),async()=>assert.equal((await client.searchStudies()).items.length,0));
+    } finally {registry.dispose();}
+});
+
+test('replacement remains available at the32-source limit and rejects accessors without invoking them', () => {
+    const registry=new SourceRegistry(Array.from({length:32},(_,index)=>source(`source-${index}`)));let called=0;
+    try {
+        assert.equal(registry.replace(source('source-0',{name:'Updated'})).name,'Updated');
+        const invalid=source('source-0');Object.defineProperty(invalid,'id',{get(){called++;return 'source-0';}});
+        assert.throws(()=>registry.replace(invalid),/Configure a source/);assert.equal(called,0);
+        assert.equal(registry.list().length,32);
+    } finally {registry.dispose();}
+});
+
+test('removing a source cancels parsing of an already returned direct-client metadata stream', async () => {
+    let reading=false,canceled=false;const registry=new SourceRegistry([source()]);
+    try {
+        await withFetch(async()=>new Response(new ReadableStream({
+            pull(){reading=true;return new Promise(()=>{});},cancel(){canceled=true;}
+        },{highWaterMark:0}),{headers:{'content-type':'application/dicom+json'}}),async()=>{
+            const pending=registry.getClient('research').searchStudies(),rejected=assert.rejects(pending,{name:'AbortError'});
+            while(!reading)await new Promise(resolve=>setTimeout(resolve,0));
+            registry.remove('research');await rejected;assert.equal(canceled,true);
+        });
+    } finally {registry.dispose();}
+});

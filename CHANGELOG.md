@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — storage source settings and connection tests
+
+Add a unified Storage sources manager with named DICOMweb/DIMSE connections,
+explicit unsaved/saved connection tests, session-only authentication, optional
+nonsecret profiles, default selection, safe editing/removal and managed-source
+controls. Native DIMSE setup uses a loopback companion service with configured
+PACS host/port/AE titles, C-ECHO and fixed-target C-FIND/C-GET gateways. Tests
+report metadata connectivity separately from untested image retrieval/display.
+Embedded applications retain control of authentication and source editing.
+No npm publication or hosted-site deployment is implied by this source update.
+
 ## Unreleased — research access and patient-name search
 
 Use Store 0.2.1's explicit local research policy for cookie-free local DICOMweb
